@@ -1,0 +1,3 @@
+Map Position: http://www.openstreetmap.org/relation/113314
+
+Description: Austin is the capital of Texas, and a quirky part of a truly massive state. I chose this city for a number of reasons. One is that it's a "big city" whose file size was small enough to run and re-run code easily on the entire thing. I've also visited Austin a few times for science conferences, but didn't really get a good feel for this liberal center due to a lack of time. I felt that with this project, I'd get a chance to get more familiar with this city than I have in the past.

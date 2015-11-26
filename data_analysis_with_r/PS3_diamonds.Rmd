@@ -1,0 +1,156 @@
+---
+title: "PS3_diamonds"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+load the diamonds data set into R studio.
+```{r}
+data(diamonds)
+```
+
+a) How many observations are there in the data set? How many variables are in the data set?
+```{r}
+dim(diamonds)
+```
+
+c) How many ordered factors are there in the data set?
+```{r}
+?diamonds
+```
+cut, color, clarity
+
+d) Which letter represents the best color for a diamond?
+D
+
+Create a histogram of the price of all the diamonds in the data set
+```{r}
+library(ggplot2)
+ggplot(data=diamonds, aes(x=price)) +
+  geom_histogram(binwidth=100) +
+  scale_x_continuous(limits=c(0,5000), breaks=seq(0, 5000, 500))
+```
+
+Describe the shape and center of the price distribution
+```{r}
+summary(diamonds$price)
+```
+
+How many diamonds cost less than $500? $250? $15,000 or more?
+```{r}
+sum(diamonds$price < 500)
+sum(diamonds$price < 250)
+sum(diamonds$price >= 15000)
+```
+
+Explore the largest peak in the price histogram
+```{r}
+ggplot(data=diamonds, aes(x=price)) + geom_histogram(binwidth=10) + 
+  scale_x_continuous(limits=c(0, 1500), breaks=seq(0, 1500, 100))
+```
+
+Break out the histogram of diamond prices by cut.
+```{r}
+ggplot(data=diamonds, aes(x=price)) +
+  geom_histogram(binwidth=100) +
+  scale_x_continuous(limits=c(0,5000), breaks=seq(0, 5000, 500)) + 
+  facet_wrap(~cut)
+```
+
+Which cut has the highest priced diamond?
+```{r}
+by(diamonds$price, diamonds$cut, max)
+```
+
+Which cut has the lowest priced diamond?
+```{r}
+by(diamonds$price, diamonds$cut, min)
+```
+
+Which cut has the lowest median price?
+```{r}
+by(diamonds$price, diamonds$cut, median)
+```
+
+add a parameter to facet_wrap so that
+the y-axis in the histograms is not fixed. You want the y-axis to
+be different for each histogram.
+```{r}
+ggplot(data=diamonds, aes(x=price)) +
+  geom_histogram(binwidth=100) +
+  scale_x_continuous(limits=c(0,5000), breaks=seq(0, 5000, 500)) + 
+  facet_wrap(~cut, scales="free_y")
+```
+
+Create a histogram of price per carat
+and facet it by cut. Adjust the bin width and transform the scale
+of the x-axis using log10.
+```{r}
+ggplot(data=diamonds, aes(x=price/carat)) +
+  geom_histogram() + scale_x_log10() +
+  facet_wrap(~cut, scales="free_y")
+```
+
+Investigate the price of diamonds using box plots,
+numerical summaries, and one of the following categorical
+variables: cut, clarity, or color.
+```{r}
+by(diamonds$price, diamonds$cut, summary)
+by(diamonds$price, diamonds$clarity, summary)
+by(diamonds$price, diamonds$color, summary)
+summary(diamonds$price)
+
+ggplot(data=diamonds, aes(x=price)) +
+  geom_histogram() + 
+  scale_x_log10(limits=c(250, 50000), breaks=10^seq(1, 5, 1)) +
+  facet_wrap(~clarity, scales="free_y")
+```
+
+What is the price range for the middle 50% of diamonds with color D?
+```{r}
+summary(subset(diamonds$price, diamonds$color == "D"))
+```
+
+What is the price range for the middle 50% of diamonds with color J?
+```{r}
+summary(subset(diamonds$price, diamonds$color == "J"))
+```
+
+What is the IQR for diamonds with the best color?
+```{r}
+quant1 = quantile(subset(diamonds$price, diamonds$color == "D"), 0.25)
+quant3 = quantile(subset(diamonds$price, diamonds$color == "D"), 0.75)
+quant3 - quant1
+```
+
+What is the IQR for diamonds with the worst color?
+```{r}
+IQR(subset(diamonds$price, diamonds$color == "J"))
+```
+
+Investigate the price per carat of diamonds across
+the different colors of diamonds using boxplots.
+```{r}
+ggplot(aes(x = color, y=price/carat), data = diamonds) + 
+  geom_boxplot()
+```
+
+Investigate the weight of diamonds (carat) using a frequency polygon.
+Use different bin widths to see how the frequency polygon changes. What
+carat size has a count greater than 2000?
+```{r}
+ggplot(aes(x=carat), data=diamonds) + geom_freqpoly(binwidth=0.2) +
+  scale_x_continuous(limits=c(0,6), breaks=seq(0, 6, 0.5)) +
+  scale_y_continuous(limits=c(2000, 15000))
+
+sum(diamonds$carat == 0.3)
+sum(diamonds$carat == 1.01)
+```
+
+
+
+
+

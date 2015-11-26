@@ -1,0 +1,173 @@
+---
+title: "PS3_gapminder"
+output: html_document
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+---
+
+The Gapminder website contains over 500 data sets with information about
+the world's population. Your task is to download a data set of your choice
+and create 2-5 plots that make use of the techniques from Lesson 3.
+
+You might use a simple histogram, a boxplot split over a categorical variable,
+or a frequency polygon. The choice is yours!
+
+I've chosen arms imports and exports worldwide. They're both .xlsx files, so lets 
+start with a few preliminaries.
+
+```{r}
+library(ggplot2)
+library(gridExtra)
+setwd("/Users/Nick/Documents/udacity/courses/data_analysis_with_r/")
+```
+
+I've decided on two data sets actually. They're related, so I'm considering them to be one data set. They are:
+- Arms exports (US$, inflation-adjusted)
+- Arms imports (US$, inflation-adjusted)
+
+Let's load in each data set. I'm going to want to compare the two. Note that because they're saved from .xlsx files, their columns (years) are all prefixed with "X". I'm removing that. I'm also changing the "Arms.exports..constant.1990.US.." column to "country", as these are the data in that column. Lastly, we're transposing because we want the data to be per country, not per year.
+```{r}
+arms_in <- read.csv("arms_imports.csv")
+names(arms_in) <- gsub("X", "", names(arms_in))
+names(arms_in) <- sub("^Arms.imports..constant.1990.US..","year", names(arms_in))
+arms_in <- t(arms_in)
+
+arms_out <- read.csv("arms_exports.csv")
+names(arms_out) <- gsub("X", "", names(arms_out))
+names(arms_out) <- sub("Arms.exports..constant.1990.US..","year", names(arms_out))
+arms_out <- t(arms_out)
+```
+
+
+Separate out 5 first-world nations
+- United States
+- United Kingdom
+- Switzerland
+- China
+- Germany
+
+and 5 developing nations 
+- Jordan
+- Korea, Rep.
+- Libya
+- Pakistan
+- Vietnam
+
+WITH good data coverage across all years. Then combine all import and export data for these years into one data frame
+```{r}
+years = c(1960:2011)
+usa_imp = as.numeric(arms_in[2:53, 203])
+uk_imp = as.numeric(arms_in[2:53, 202])
+swiss_imp = as.numeric(arms_in[2:53, 185])
+china_imp = as.numeric(arms_in[2:53, 41])
+ger_imp = as.numeric(arms_in[2:53, 71])
+jordan_imp = as.numeric(arms_in[2:53, 97])
+korea_imp = as.numeric(arms_in[2:53, 102])
+libya_imp = as.numeric(arms_in[2:53, 111])
+pak_imp = as.numeric(arms_in[2:53, 147])
+viet_imp = as.numeric(arms_in[2:53, 208])
+
+
+usa_exp = as.numeric(arms_out[2:53, 203])
+uk_exp = as.numeric(arms_out[2:53, 202])
+swiss_exp = as.numeric(arms_out[2:53, 185])
+china_exp = as.numeric(arms_out[2:53, 41])
+ger_exp = as.numeric(arms_out[2:53, 71])
+jordan_exp = as.numeric(arms_out[2:53, 97])
+korea_exp = as.numeric(arms_out[2:53, 102])
+libya_exp = as.numeric(arms_out[2:53, 111])
+pak_exp = as.numeric(arms_out[2:53, 147])
+viet_exp = as.numeric(arms_out[2:53, 208])
+
+first_world = data.frame(years, usa_imp, usa_exp, uk_imp, uk_exp, swiss_imp,
+                         swiss_exp, china_imp, china_exp, ger_imp, ger_exp)
+third_world = data.frame(years, jordan_imp, jordan_exp, korea_imp, korea_exp,
+                         libya_imp, libya_exp, pak_imp, pak_exp, viet_imp, viet_exp)
+```
+
+
+First plots: line graphs of arms imports/exports for the first-world countries over time
+```{r}
+library(grid)
+plot1 = ggplot(data=first_world, aes(x=years)) + geom_line(aes(y=usa_exp/1E9)) +
+  geom_line(aes(y=uk_exp/1E9), color="red") +
+  geom_line(aes(y=swiss_exp/1E9), color="green") +
+  geom_line(aes(y=china_exp/1E9), color="blue") +
+  geom_line(aes(y=ger_exp/1E9), color="orange") +
+  scale_y_continuous(limits=c(0, 17.5)) + xlab("Year") +
+  ylab("Arms Exports per $US billion") + 
+  theme(legend.position="none", axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.margin = unit(c(1, 1, -0.5, 1), "cm"))
+
+plot2 = ggplot(data=first_world, aes(x=years)) + geom_line(aes(y=usa_imp/1E9)) +
+  geom_line(aes(y=uk_imp/1E9), color="red") +
+  geom_line(aes(y=swiss_imp/1E9), color="green") +
+  geom_line(aes(y=china_imp/1E9), color="blue") +
+  geom_line(aes(y=ger_imp/1E9), color="orange") +
+  scale_y_continuous(limits=c(0, 17.5)) +
+  ylab("Arms Imports per $US billion") + 
+  theme(legend.position="none", 
+        plot.margin = unit(c(-0.05, 1, 1, 1), "cm"))
+
+grid.arrange(plot1, plot2, ncol=1)
+```
+
+Second set: Same plots, but for third-world countries
+```{r}
+plot1 = ggplot(data=third_world, aes(x=years)) + geom_line(aes(y=jordan_exp/1E6)) +
+  geom_line(aes(y=korea_exp/1E6), color="red") +
+  geom_line(aes(y=libya_exp/1E6), color="green") +
+  geom_line(aes(y=pak_exp/1E6), color="blue") +
+  geom_line(aes(y=viet_exp/1E6), color="orange") +
+  scale_y_continuous(limits=c(0, 500)) + xlab("Year") +
+  ylab("Arms Exports per $US million") + 
+  theme(legend.position="none", axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        plot.margin = unit(c(1, 1, -0.5, 1), "cm"))
+
+plot2 = ggplot(data=third_world, aes(x=years)) + geom_line(aes(y=jordan_imp/1E9)) +
+  geom_line(aes(y=korea_imp/1E9), color="red") +
+  geom_line(aes(y=libya_imp/1E9), color="green") +
+  geom_line(aes(y=pak_imp/1E9), color="blue") +
+  geom_line(aes(y=viet_imp/1E9), color="orange") +
+  scale_y_continuous(limits=c(0, 5)) +
+  ylab("Arms Imports per $US billion") + 
+  theme(legend.position="none", 
+        plot.margin = unit(c(-0.05, 1, 1, 1), "cm"))
+
+grid.arrange(plot1, plot2, ncol=1)
+```
+
+
+Third: It looks as if the US is the biggest seller of arms since 1960. Is that true?
+```{r}
+ggplot(data = first_world) + 
+  geom_boxplot(aes(x=years, y=usa_exp/1E9), fill="black", color="white") +
+  geom_boxplot(aes(x=years + 50, y=uk_exp/1E9), fill="red", color="white") +
+  geom_boxplot(aes(x=years + 100, y=swiss_exp/1E9), fill="green", color="white") +
+  geom_boxplot(aes(x=years + 150, y=china_exp/1E9), fill="blue", color="white") +
+  geom_boxplot(aes(x=years + 200, y=ger_exp/1E9), fill="orange", color="white") +
+  ylab("Arms Exports per $US billion") +
+  xlab("Nation") + 
+  scale_x_continuous(breaks=c(1985, 2035, 2085, 2135, 2185), 
+                     labels=c("USA", "UK", "Switzerland", "China", "Germany"))
+```
+
+Fourth: Let's look at those imports for third world countries.
+```{r}
+ggplot(data = third_world) + 
+  geom_boxplot(aes(x=years, y=jordan_imp/1E9), fill="black", color="white") +
+  geom_boxplot(aes(x=years + 50, y=korea_imp/1E9), fill="red", color="white") +
+  geom_boxplot(aes(x=years + 100, y=libya_imp/1E9), fill="green", color="white") +
+  geom_boxplot(aes(x=years + 150, y=pak_imp/1E9), fill="blue", color="white") +
+  geom_boxplot(aes(x=years + 200, y=viet_imp/1E9), fill="orange", color="white") +
+  ylab("Arms Imports per $US billion") +
+  xlab("Nation") + 
+  scale_x_continuous(breaks=c(1985, 2035, 2085, 2135, 2185), 
+                     labels=c("Jordan", "S. Korea", "Libya", "Pakistan", "Vietnam"))
+```

@@ -34,6 +34,10 @@ answer: July
 How many birthdays are in each month?
 ```{r}
 by(birthdays$Bool_col, birthdays$Month, sum)
+ggplot(data=birthdays, aes(x=birthdays$Month)) + geom_histogram() +
+  scale_x_discrete(labels=c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul",
+                            "Aug", "Sep", "Oct", "Nov", "Dec")) +
+  xlab("Birth Month") + ylab("Number of People")
 ```
 January: 32
 February: 33

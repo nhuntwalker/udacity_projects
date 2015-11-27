@@ -21,7 +21,7 @@ start with a few preliminaries.
 ```{r}
 library(ggplot2)
 library(gridExtra)
-setwd("/Users/Nick/Documents/udacity/courses/data_analysis_with_r/")
+setwd("/Users/Nick/Documents/udacity/projects/data_analysis_with_r/")
 ```
 
 I've decided on two data sets actually. They're related, so I'm considering them to be one data set. They are:
@@ -114,6 +114,7 @@ plot2 = ggplot(data=first_world, aes(x=years)) + geom_line(aes(y=usa_imp/1E9)) +
         plot.margin = unit(c(-0.05, 1, 1, 1), "cm"))
 
 grid.arrange(plot1, plot2, ncol=1)
+#ggsave("first_world_arms_inout.png")
 ```
 
 Second set: Same plots, but for third-world countries
@@ -140,6 +141,7 @@ plot2 = ggplot(data=third_world, aes(x=years)) + geom_line(aes(y=jordan_imp/1E9)
         plot.margin = unit(c(-0.05, 1, 1, 1), "cm"))
 
 grid.arrange(plot1, plot2, ncol=1)
+# ggsave("third_world_arms_inout.png")
 ```
 
 
@@ -155,6 +157,7 @@ ggplot(data = first_world) +
   xlab("Nation") + 
   scale_x_continuous(breaks=c(1985, 2035, 2085, 2135, 2185), 
                      labels=c("USA", "UK", "Switzerland", "China", "Germany"))
+# ggsave("first_world_arms_boxplot.png")
 ```
 
 Fourth: Let's look at those imports for third world countries.
@@ -169,4 +172,5 @@ ggplot(data = third_world) +
   xlab("Nation") + 
   scale_x_continuous(breaks=c(1985, 2035, 2085, 2135, 2185), 
                      labels=c("Jordan", "S. Korea", "Libya", "Pakistan", "Vietnam"))
+# ggsave("third_world_arms_boxplot.png")
 ```

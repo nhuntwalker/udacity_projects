@@ -1,0 +1,69 @@
+---
+title: "PS3_birthdays"
+output: html_document
+---
+
+```{r}
+library(chron)
+birthdays = read.csv("facebook_birthdays.csv")
+```
+
+Reformat dates and add columns
+```{r}
+birthdays$Start <- strptime(birthdays$Start, format="%m/%d/%Y %H:%M")
+birthdays$Day <- strftime(birthdays$Start, format="%d")
+birthdays$Month <- strftime(birthdays$Start, format="%m")
+birthdays$Year <- strftime(birthdays$Start, format="%Y")
+birthdays$Bool_col <- TRUE
+birthdays$Weekday <- strftime(birthdays$Start, format="%A")
+birthdays$Yearday <- strftime(birthdays$Start, format="%j")
+```
+
+How many people share my birthday?
+```{r}
+sum(strftime(birthdays$Start, format="%m-%d") == "04-18")
+```
+answer: 3 people
+
+Which month has the most birthdays?
+```{r}
+by(birthdays$Bool_col, birthdays$Month, sum)
+```
+answer: July
+
+How many birthdays are in each month?
+```{r}
+by(birthdays$Bool_col, birthdays$Month, sum)
+```
+January: 32
+February: 33
+March: 35
+April: 41
+May: 41
+June: 38
+July: 49
+August: 39
+September: 36
+October: 40
+November: 37
+December: 36
+
+Which day of the year has the most number of birthdays?
+```{r}
+split_by_weekday = by(birthdays$Bool_col, birthdays$Weekday, sum)
+split_by_weekday[split_by_weekday == max(split_by_weekday)]
+split_by_day = by(birthdays$Bool_col, birthdays$Day, sum)
+split_by_day[split_by_day == max(split_by_day)]
+```
+Monday: 78 birthdays
+6th of the month: 25 birthdays
+
+Do you have at least 365 friends that have birthdays on everyday
+of the year?
+```{r}
+split_by_yearday = by(birthdays$Bool_col, birthdays$Yearday, sum)
+split_by_yearday[split_by_yearday > 0]
+```
+At least 365 friends? yes
+Birthdays on every day? no
+

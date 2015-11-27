@@ -1,0 +1,115 @@
+---
+title: "PS3_fb_friends"
+output: html_document
+---
+
+```{r}
+pf = read.csv("pseudo_facebook.tsv", sep="\t")
+```
+
+Friendships initiated vs age?
+```{r}
+library(ggplot2)
+ggplot(aes(x=age, y=friendships_initiated), data=pf) +
+  geom_point(alpha=0.05, position=position_jitter(h=0)) +
+  xlim(13, 90) + coord_trans(y="sqrt")
+```
+
+Conditional means
+```{r}
+library(dplyr)
+age_groups = group_by(pf, age)
+pf.fc_by_age = summarise(age_groups,
+          friend_count_mean = mean(friend_count),
+          friend_count_median = median(friend_count),
+          n = n())
+head(pf.fc_by_age)
+```
+
+Conditional Means - Alternate
+```{r}
+pf_summary = pf %>%
+  group_by(age) %>%
+  summarise(friend_count_mean = mean(friend_count),
+            friend_count_median = median(friend_count),
+            n = n()) %>%
+  arrange(age)
+
+ggplot(aes(y=friend_count_mean, x=age), data=pf_summary) + geom_line()
+```
+
+Overlaying summaries with Row Data
+```{r}
+ggplot(aes(x=age, y=friend_count), data=pf) +
+  xlim(13,90) +
+  geom_point(alpha=0.05, position=position_jitter(h=0), color="orange") +
+  coord_trans(y="sqrt") +
+  geom_line(stat="summary", fun.y = mean)
+```
+
+Overlaying summaries with Row Data - Quantiles
+```{r}
+ggplot(aes(x=age, y=friend_count), data=pf) +
+  xlim(13,90) +
+  geom_point(alpha=0.05, position=position_jitter(h=0), color="orange") +
+  coord_trans(y="sqrt") +
+  geom_line(stat="summary", fun.y = mean) +
+  geom_line(stat="summary", fun.y = median, color="blue") +
+  geom_line(stat="summary", fun.y = quantile, probs=0.1, linetype=2, color="blue") +
+  geom_line(stat="summary", fun.y = quantile, probs=0.9, linetype=2, color="blue")
+```
+
+Correlation
+```{r}
+cor.test(pf$age, pf$friend_count)
+# for ages <= 70
+with(subset(pf, age <= 70), cor.test(age, friend_count))
+```
+
+Scatter of `likes_received` vs `www_likes_received`
+```{r}
+ggplot(data=pf, aes(x=www_likes_received, y=likes_received)) +
+  geom_point(alpha=0.05) +
+  coord_trans(x="sqrt", y="sqrt") +
+  xlim(0, quantile(pf$www_likes_received, 0.95)) +
+  ylim(0, quantile(pf$likes_received, 0.95)) +
+  geom_smooth(method="lm", color="red")
+  
+with(pf, cor.test(likes_received, www_likes_received))
+```
+
+More caution with correlation
+```{r}
+library(alr3)
+data(Mitchell)
+
+ggplot(data=Mitchell, aes(x=Month, y=Temp)) + geom_point() +
+  scale_x_discrete(breaks=seq(0, max(Mitchell$Month), 12))
+with(Mitchell, cor.test(Month, Temp))
+```
+
+Understanding Noise: Age-to-age Months
+```{r}
+# library(chron)
+# library(zoo)
+ref_date = strptime("December 31, 2013", format="%B %d, %Y")
+pf$age_with_months = (as.numeric(strftime(ref_date, format="%Y")) - as.numeric(pf$dob_year)) + (as.numeric(strftime(ref_date, format="%m")) - as.numeric(pf$dob_month))/12
+```
+
+Age with Months Means
+```{r}
+pf.fc_by_age_months = pf %>%
+  group_by(age_with_months) %>%
+  summarise(friend_count_mean = mean(friend_count),
+            friend_count_median = median(friend_count),
+            n = n()) %>%
+  arrange(age_with_months)
+```
+
+Plot of the above
+```{r}
+ggplot(data=subset(pf.fc_by_age_months, age_with_months < 71), aes(x=age_with_months, y=friend_count_mean)) + geom_line()
+```
+
+
+

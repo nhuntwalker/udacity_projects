@@ -19,11 +19,12 @@ birthdays$Weekday <- strftime(birthdays$Start, format="%A")
 birthdays$Yearday <- strftime(birthdays$Start, format="%j")
 ```
 
-How many people share my birthday?
+How many people share my birthday? Do I know them?
 ```{r}
 sum(strftime(birthdays$Start, format="%m-%d") == "04-18")
+birthdays$Title[strftime(birthdays$Start, format="%m-%d") == "04-18"]
 ```
-answer: 3 people
+answer: 2 people
 
 Which month has the most birthdays?
 ```{r}
@@ -38,6 +39,7 @@ ggplot(data=birthdays, aes(x=birthdays$Month)) + geom_histogram() +
   scale_x_discrete(labels=c("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul",
                             "Aug", "Sep", "Oct", "Nov", "Dec")) +
   xlab("Birth Month") + ylab("Number of People")
+ggsave("birthday_distribution_month.png")
 ```
 January: 32
 February: 33
@@ -58,6 +60,11 @@ split_by_weekday = by(birthdays$Bool_col, birthdays$Weekday, sum)
 split_by_weekday[split_by_weekday == max(split_by_weekday)]
 split_by_day = by(birthdays$Bool_col, birthdays$Day, sum)
 split_by_day[split_by_day == max(split_by_day)]
+ggplot(data=birthdays, aes(x=birthdays$Weekday)) + geom_histogram() +
+  scale_x_discrete(labels=c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday")) +
+  xlab("Day of the Week") + ylab("Number of People")
+ggsave("birthday_distribution_day.png")
+
 ```
 Monday: 78 birthdays
 6th of the month: 25 birthdays

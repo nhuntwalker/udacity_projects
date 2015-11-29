@@ -9,7 +9,7 @@ library(ggplot2)
 
 Histogram of people's birthdays
 ```{r}
-setwd("/Users/Nick/Documents/udacity/courses/data_analysis_with_r/")
+setwd("/Users/Nick/Documents/udacity/projects/data_analysis_with_r/")
 list.files()
 pf = read.delim("pseudo_facebook.tsv", sep="\t")
 names(pf)

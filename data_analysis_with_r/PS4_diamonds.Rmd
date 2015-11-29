@@ -1,0 +1,98 @@
+---
+title: "PS4_diamonds"
+output: html_document
+---
+
+Load the diamonds data set, as well as ggplot2
+```{r}
+setwd("/Users/Nick/Documents/udacity/projects/data_analysis_with_r/")
+library(ggplot2)
+data(diamonds)
+```
+
+
+Create a scatterplot of price vs x for the diamonds data set
+```{r}
+ggplot(data=diamonds, aes(x=x, y=price)) + geom_point()
+```
+
+
+Testing correlations between price and x/y/z
+```{r}
+with(diamonds, cor.test(x, price))
+with(diamonds, cor.test(y, price))
+with(diamonds, cor.test(z, price))
+```
+- between price and x? 0.88
+- between price and y? 0.87
+- between price and z? 0.86
+
+
+Create a simple scatter plot of price vs depth. Add to the code some transparency in the dots (1/100) and mark the x-axis every 2 units.
+```{r}
+ggplot(data=diamonds, aes(x=depth, y=price)) + geom_point(alpha=0.01) +
+  scale_x_continuous(breaks=seq(40, 80, 2))
+```
+The above plot places the vast majority of diamonds between depths of 60 and 64.
+
+
+What's the correlation of depth vs. price?
+```{r}
+with(diamonds, cor.test(depth, price))
+```
+The correlation between the two is -0.01. This would be a horrible predictive characteristic of diamond price.
+
+
+Create a scatterplot of price vs carat, and omit the top 1% of price and carat values.
+```{r}
+ggplot(data=diamonds, aes(x=carat, y=price)) + geom_point() + 
+  xlim(0, quantile(diamonds$carat, 0.99)) +
+  ylim(0, quantile(diamonds$price, 0.99))
+```
+
+
+Create a scatterplot of price vs volume (x * y * z). In the process, create a new variable for volume in the diamonds data frame.
+```{r}
+diamonds$volume = diamonds$x * diamonds$y * diamonds$z
+ggplot(data=diamonds, aes(x=volume, y=price)) + geom_point()
+```
+The x-axis needs to be rescaled to exclude the worst outliers (like 3?). Generally though, price trends upward with diamond volume.
+
+
+What's the correlation of price and volume? Exclude diamonds that have a volume of 0 or that are greater than or equal to 800.
+```{r}
+with(subset(diamonds, (diamonds$volume > 0) & (diamonds$volume < 800)), cor.test(volume, price))
+```
+Correlation: 0.9235455
+
+
+Subset the data to exclude diamonds with a volume greater tha or equal to 800. Also, exclude diamonds with a volume of 0. Adjust the transparency of the points and add a linear model to the plot.
+
+Do you think this would be a useful model to estimate the price of diamonds? Why or why not?
+```{r}
+diam_sub = subset(diamonds, (diamonds$volume > 0) & (diamonds$volume < 800))
+ggplot(data=diam_sub, aes(x=volume, y=price)) + geom_point(alpha=0.01) +
+  geom_smooth()
+```
+This is definitely not a useful model beyond a volume of about 400. Perhaps even before then.
+
+
+Use the function dplyr package to create a new data frame containing info on diamonds by clarity. Name the data frame "diamondsByClarity". The data should contain the following variables in this order:
+- mean_price
+- median_price
+- min_price
+- max_price
+- n
+where "n" is the number of diamonds in each level of clarity
+```{r}
+library(dplyr)
+diamondsByClarity <- diamonds %>%
+  group_by(clarity) %>%
+  summarise(mean_price = mean(price),
+            median_price = median(price),
+            min_price = min(price),
+            max_price = max(price),
+            n = n())
+diamondsByClarity
+```
+

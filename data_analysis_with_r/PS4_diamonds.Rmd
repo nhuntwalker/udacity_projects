@@ -96,3 +96,32 @@ diamondsByClarity <- diamonds %>%
 diamondsByClarity
 ```
 
+
+`diamonds_mp_by_clarity` and `diamonds_mp_by_color` are summary data frames with the mean price by clarity and color. Create two bar plots on one output image using the grid.arrange() function from the package gridExtra
+```{r}
+library(gridExtra)
+diamonds_by_clarity <- group_by(diamonds, clarity)
+diamonds_mp_by_clarity <- summarise(diamonds_by_clarity, mean_price = mean(price))
+
+diamonds_by_color <- group_by(diamonds, color)
+diamonds_mp_by_color <- summarise(diamonds_by_color, mean_price = mean(price))
+
+plot1 = ggplot(data=diamonds_mp_by_clarity, aes(factor(clarity), y=mean_price)) + geom_bar(stat="identity")
+plot2 = ggplot(data=diamonds_mp_by_color, aes(x=factor(color), y=mean_price)) + geom_bar(stat="identity")
+grid.arrange(plot1, plot2, ncol=2)
+```
+
+
+What do you notice in each of the bar charts for mean price by clarity and mean price by color?
+clarity: I1 (worst), SI1, SI2, VS1, VS2, VVS1, VVS2, IF (best)
+color: J (worst) to D (best)
+
+Generally the better the color, the lower the mean price, which is quite surprising. Similarly, aside from a couple spikes, higher clarity diamonds have lower mean prices.
+
+This is strange. Let's consider the mean price w.r.t. cut
+```{r}
+diamonds_by_cut <- group_by(diamonds, cut)
+diamonds_mp_by_cut <- summarise(diamonds_by_cut, mean_price = mean(price))
+ggplot(data=diamonds_mp_by_cut, aes(factor(cut), y=mean_price)) + geom_bar(stat="identity")
+```
+

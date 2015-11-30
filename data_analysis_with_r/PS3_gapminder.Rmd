@@ -174,3 +174,20 @@ ggplot(data = third_world) +
                      labels=c("Jordan", "S. Korea", "Libya", "Pakistan", "Vietnam"))
 # ggsave("third_world_arms_boxplot.png")
 ```
+
+
+# Regarding the end of PS4...
+Let's use multiple data sets more wisely. We have already arms imports and arms exports. We can also get GDP data (in USD 2000 which we can convert to 1990 or vice versa with a factor of 1.317521041), unemployment data, and others. We can merge them into a data frame with columns like so:
+- country
+- year
+- arms imports USD 1990 (or 2000)
+- arms exports USD 1990 (or 2000)
+- GDP USD 1990 (or 2000)
+- Males aged 15+ unemployment rate (%)
+- Females aged 15+ unemployment rate (%)
+- Life Expectancy (years)
+- Literacy Rate, adult female (% of females aged 15+)
+- Literacy Rate, adult male (% of males aged 15+)
+
+Then we can make a couple interesting plots. imports vs unemployment, life expectancy vs gdp, literacy rate between genders, and literacy rate vs gdp
+

@@ -177,17 +177,75 @@ ggplot(data = third_world) +
 
 
 # Regarding the end of PS4...
-Let's use multiple data sets more wisely. We have already arms imports and arms exports. We can also get GDP data (in USD 2000 which we can convert to 1990 or vice versa with a factor of 1.317521041), unemployment data, and others. We can merge them into a data frame with columns like so:
+Let's use multiple data sets more wisely. We have already arms imports and arms exports. We can also get GDP data (in USD 2000 which we can convert to 1990 or vice versa with a factor of 1.317521041), and others. We can merge them into a data frame with columns like so:
 - country
 - year
 - arms imports USD 1990 (or 2000)
 - arms exports USD 1990 (or 2000)
 - GDP USD 1990 (or 2000)
-- Males aged 15+ unemployment rate (%)
-- Females aged 15+ unemployment rate (%)
 - Life Expectancy (years)
-- Literacy Rate, adult female (% of females aged 15+)
-- Literacy Rate, adult male (% of males aged 15+)
 
-Then we can make a couple interesting plots. imports vs unemployment, life expectancy vs gdp, literacy rate between genders, and literacy rate vs gdp
+Let's first load and format the appropriate data sets
+```{r}
+arms_in <- read.csv("arms_imports.csv")
+arms_out <- read.csv("arms_exports.csv")
+gdp_2000 <- read.csv("gdp_per_capita_usd2000.csv")
+life_expectancy <- read.csv("life_expectancy_at_birth.csv")
+unemp_fems <- read.csv("females_unemployment_pct.csv")
+unemp_males <- read.csv("males_unemployment_pct.csv")
+
+names(arms_in) <- gsub("X", "", names(arms_in))
+names(arms_out) <- gsub("X", "", names(arms_out))
+names(gdp_2000) <- gsub("X", "", names(gdp_2000))
+names(life_expectancy) <- gsub("X", "", names(life_expectancy))
+names(unemp_fems) <- gsub("X", "", names(unemp_fems))
+names(unemp_males) <- gsub("X", "", names(unemp_males))
+
+names(arms_in) <- sub("^Arms.imports..constant.1990.US..",
+                      "country", names(arms_in))
+names(arms_out) <- sub("^Arms.exports..constant.1990.US..",
+                       "country", names(arms_out))
+names(gdp_2000) <- sub("^Income.per.person..fixed.2000.US..",
+                       "country", names(gdp_2000)) 
+names(life_expectancy) <- sub("^Life.expectancy.with.projections..Yellow.is.IHME",
+                              "country", names(life_expectancy))
+names(unemp_fems) <- sub("^Female.15..unemployment....",
+                              "country", names(unemp_fems))
+names(unemp_males) <- sub("^Male.15..unemployment....",
+                              "country", names(unemp_males))
+```
+
+
+Let's try to have a data frame combining information from the year 2000
+for all countries
+```{r}
+all_info = arms_in[c("country", "2000")]
+names(all_info)[2] <- "imports_2000"
+
+exports_dum = arms_out[, c("country", "2000")]
+all_info = merge(all_info, exports_dum, by="country")
+names(all_info)[3] <- "exports_2000"
+
+gdp_dum = gdp_2000[, c("country", "2000")]
+all_info = merge(all_info, gdp_dum, by="country")
+names(all_info)[4] <- "gdp_2000"
+
+life_dum = life_expectancy[, c("country", "2000")]
+all_info = merge(all_info, life_dum, by="country")
+names(all_info)[5] <- "life_expectancy_2000"
+
+fems_dum = unemp_fems[, c("country", "2000")]
+all_info = merge(all_info, fems_dum, by="country")
+names(all_info)[6] <- "female_unemployment_2000"
+
+males_dum = unemp_males[, c("country", "2000")]
+all_info = merge(all_info, males_dum, by="country")
+names(all_info)[7] <- "male_unemployment_2000"
+```
+
+```{r}
+ggplot(data=all_info, aes(x=gdp_2000, y=life_expectancy_2000)) + geom_point()
+
+ggplot(data=all_info, aes(x=life_expectancy_2000, y=female_unemployment_2000)) + geom_point()
+```
 

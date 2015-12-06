@@ -244,8 +244,12 @@ names(all_info)[7] <- "male_unemployment_2000"
 ```
 
 ```{r}
-ggplot(data=all_info, aes(x=gdp_2000, y=life_expectancy_2000)) + geom_point()
+ggplot(data=all_info, aes(x=gdp_2000, y=life_expectancy_2000)) + 
+  geom_point() +
+  xlab("GDP in 2000 (USD 2000)") + ylab("Life Expectancy (years)")
 
-ggplot(data=all_info, aes(x=life_expectancy_2000, y=female_unemployment_2000)) + geom_point()
+ggplot(data=all_info, aes(x=life_expectancy_2000, y=female_unemployment_2000)) + 
+  geom_point() +
+  ylab("Female Unemployment in 2000 (%)") + xlab("Life Expectancy (years)")
 ```
 

@@ -5,6 +5,7 @@ output: html_document
 
 ```{r}
 library(ggplot2)
+library(dplyr)
 ```
 
 Histogram of people's birthdays
@@ -95,6 +96,10 @@ ggplot(aes(x = gender, y=friend_count), data = subset(pf, !is.na(gender))) +
   geom_boxplot() + scale_y_continuous(limits=c(0,250))
 ```
 
+---
+## Lesson 4
+---
+
 Who initiated more friendships?
 ```{r}
 by(pf$friendships_initiated, pf$gender, summary)
@@ -109,7 +114,68 @@ summary(pf$mobile_check_in)
 sum(pf$mobile_check_in == 1)/(sum(pf$mobile_check_in == 1) + sum(pf$mobile_check_in == 0)) * 100
 ```
 
+---
+## Lesson 5
+---
 
+Third Qualitative Variable
+```{r}
+ggplot(aes(x=gender, y=age), data=subset(pf, !is.na(gender))) + geom_boxplot() +
+  stat_summary(fun.y = median, geom="point", shape=4)
+
+ggplot(aes(x=age, y=friend_count), data=subset(pf, !is.na(gender))) + 
+  geom_line(aes(color=gender), stat="summary", fun.y=median)
+```
+
+
+Create a dataframe showing the mean and median friend count by age and gender.
+```{r}
+library(dplyr)
+pf.fc_by_age_gender <- subset(pf, !is.na(gender)) %>% 
+  group_by(age, gender) %>% 
+  summarise(mean_friend_count=mean(friend_count),
+            median_friend_count = median(friend_count),
+            n = n())
+pf.fc_by_age_gender
+```
+
+
+Now, create a line graph showing the median friend count over the ages
+for each gender. Be sure to use the data frame you just created, pf.fc_by_age_gender.
+```{r}
+ggplot(data=pf.fc_by_age_gender, aes(x=age, y=median_friend_count)) +
+  geom_line(aes(color=gender))
+```
+
+We now want to reshape this table where we have one row for age, and one column for each gender.
+Left of the ~ goes the value we want to keep as is, to the right of the ~ goes the values we want as columns. Value.var holds the key measurements of our dataframe.
+```{r}
+library(reshape2)
+pf.fc_by_age_gender.wide <- dcast(pf.fc_by_age_gender,
+                                  age ~ gender,
+                                  value.var = "median_friend_count")
+```
+
+Now plot the ratio of female-to-male median friend count. Include a horizontal
+line at ratio = 1
+```{r}
+ggplot(data = pf.fc_by_age_gender.wide, aes(x = age, y = female / male)) + geom_line() + 
+  geom_hline(aes(yintercept = 1), linetype = 2, alpha = 0.3)
+```
+
+Let's look at the year the user first joined facebook using the variable "tenure" and 2014 as the reference year. Add this to the pf data frame as the variable "year_joined"
+```{r}
+pf$year_joined = floor(2014 - pf$tenure / 365)
+```
+
+Cut a variable to make discrete variables from continuous or numerical ones. Cut year_joined to create 4 bins of users:
+2004-2009
+2009-2011
+2011-2012
+2012-2014
+```{r}
+pf$year_joined.bucket <- cut(pf$year_joined, c(2004, 2009, 2011, 2012, 2014))
+```
 
 
 

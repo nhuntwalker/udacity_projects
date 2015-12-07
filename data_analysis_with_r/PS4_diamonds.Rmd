@@ -125,3 +125,49 @@ diamonds_mp_by_cut <- summarise(diamonds_by_cut, mean_price = mean(price))
 ggplot(data=diamonds_mp_by_cut, aes(factor(cut), y=mean_price)) + geom_bar(stat="identity")
 ```
 
+
+---
+Problem Set 5
+---
+Create a histogram of diamond prices. Facet the histogram by diamond color and 
+use cut to color the histogram bars
+```{r}
+ggplot(data=diamonds, aes(x=price, fill=cut)) + geom_histogram() +
+  facet_wrap(~color)
+```
+
+Create a scatterplot of diamond price vs.
+table and color the points by the cut of
+the diamond.
+```{r}
+ggplot(data=diamonds, aes(x=table, y=price, color=cut)) +
+  geom_jitter() + 
+  scale_x_continuous(breaks=seq(50, 80, 2), limits=c(50, 80))
+```
+
+
+Create a scatterplot of diamond price vs.
+volume (x * y * z) and color the points by
+the clarity of diamonds. Use scale on the y-axis
+to take the log10 of price. You should also
+omit the top 1% of diamond volumes from the plot.
+```{r}
+diamonds$volume = diamonds$x * diamonds$y * diamonds$z
+ggplot(data=subset(diamonds, price < quantile(price, probs=0.9) & volume > 0),
+       aes(x=volume, y=price, color=clarity)) + 
+  geom_jitter() + 
+  scale_y_log10(breaks=c(300, 550, 1000, 1700, 3000, 5500, 10000)) +
+  xlim(0, 500)
+```
+
+
+Create a scatter plot of the price/carat ratio
+of diamonds. The variable x should be
+assigned to cut. The points should be colored
+by diamond color, and the plot should be
+faceted by clarity.
+```{r}
+ggplot(data=diamonds, aes(x=cut, y=price/carat)) +
+  geom_jitter(aes(color=color), alpha=0.2) + 
+  facet_wrap(~ clarity)
+```

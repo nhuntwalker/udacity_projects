@@ -7,6 +7,8 @@ output: html_document
 library(ggplot2)
 library(dplyr)
 library(gridExtra)
+library(GGally)
+library(reshape2)
 
 ```
 
@@ -131,7 +133,6 @@ ggplot(aes(x=age, y=friend_count), data=subset(pf, !is.na(gender))) +
 
 Create a dataframe showing the mean and median friend count by age and gender.
 ```{r}
-library(dplyr)
 pf.fc_by_age_gender <- subset(pf, !is.na(gender)) %>% 
   group_by(age, gender) %>% 
   summarise(mean_friend_count=mean(friend_count),
@@ -151,7 +152,6 @@ ggplot(data=pf.fc_by_age_gender, aes(x=age, y=median_friend_count)) +
 We now want to reshape this table where we have one row for age, and one column for each gender.
 Left of the ~ goes the value we want to keep as is, to the right of the ~ goes the values we want as columns. Value.var holds the key measurements of our dataframe.
 ```{r}
-library(reshape2)
 pf.fc_by_age_gender.wide <- dcast(pf.fc_by_age_gender,
                                   age ~ gender,
                                   value.var = "median_friend_count")
@@ -220,7 +220,6 @@ ggplot(data=subset(pf, tenure > 0),
 
 Scatterplot Matrix
 ```{r}
-library(GGally)
 theme_set(theme_minimal(20))
 
 #set the seed for reproducible results
@@ -229,4 +228,57 @@ pf_subset <- pf[, c(2:15)]
 names(pf_subset)
 ggpairs(pf_subset[sample.int(nrow(pf_subset), 1000), ])
 ```
+
+---
+Problem Set 5
+---
+Your task is to create a new variable called 'prop_initiated'
+in the Pseudo-Facebook data set. The variable should contain
+the proportion of friendships that the user initiated.
+```{r}
+pf = transform(pf, prop_initiated = friendships_initiated / friend_count)
+tail(pf$prop_initiated)
+```
+
+Create a line graph of the median proportion of
+friendships initiated ('prop_initiated') vs.
+tenure and color the line segment by
+year_joined.bucket.
+```{r}
+ggplot(data=subset(pf, (tenure > 0) & !is.na(prop_initiated)),
+       aes(x=tenure, y=prop_initiated)) + 
+  geom_line(aes(color=year_joined.bucket), 
+            fun.y=mean, stat="summary") 
+```
+
+Smooth the last plot you created of
+of prop_initiated vs tenure colored by
+year_joined.bucket. You can bin together ranges
+of tenure or add a smoother to the plot.
+```{r}
+ggplot(data=subset(pf, (tenure > 0) & !is.na(prop_initiated)),
+       aes(x=7 * round(tenure / 7), y=prop_initiated)) + 
+  geom_line(aes(color=year_joined.bucket), 
+            fun.y=mean, stat="summary") 
+```
+
+
+On average, which group initiated the greatest proportion of its
+Facebook friendships?
+- (2012, 2014]
+
+For the group with the largest proportion of friendships initiated,
+what is the group's average (mean) proportion of friendships
+initiated?
+```{r}
+subset(pf, !is.na(prop_initiated)) %>% 
+  group_by(year_joined.bucket) %>% 
+  summarise(mean_prop = mean(prop_initiated),
+            n = n())
+```
+
+
+
+
+
 

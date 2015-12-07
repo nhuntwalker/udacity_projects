@@ -175,8 +175,9 @@ ggplot(data = third_world) +
 # ggsave("third_world_arms_boxplot.png")
 ```
 
-
-# Regarding the end of PS4...
+---
+# Problem Set 4
+---
 Let's use multiple data sets more wisely. We have already arms imports and arms exports. We can also get GDP data (in USD 2000 which we can convert to 1990 or vice versa with a factor of 1.317521041), and others. We can merge them into a data frame with columns like so:
 - country
 - year
@@ -251,5 +252,116 @@ ggplot(data=all_info, aes(x=gdp_2000, y=life_expectancy_2000)) +
 ggplot(data=all_info, aes(x=life_expectancy_2000, y=female_unemployment_2000)) + 
   geom_point() +
   ylab("Female Unemployment in 2000 (%)") + xlab("Life Expectancy (years)")
+```
+
+
+---
+# Problem Set 5
+---
+Adding two new data sets onto the overall set. Let's reconstruct it
+for the year 2002 instead of the year 2000.
+```{r}
+arms_in <- read.csv("arms_imports.csv")
+arms_out <- read.csv("arms_exports.csv")
+gdp_2000 <- read.csv("gdp_per_capita_usd2000.csv")
+life_expectancy <- read.csv("life_expectancy_at_birth.csv")
+unemp_fems <- read.csv("females_unemployment_pct.csv")
+unemp_males <- read.csv("males_unemployment_pct.csv")
+suicides <- read.csv("suicides_per_100k.csv")
+healthcare <- read.csv("health_expenditure_pct_gdp.csv")
+
+names(arms_in) <- gsub("X", "", names(arms_in))
+names(arms_out) <- gsub("X", "", names(arms_out))
+names(gdp_2000) <- gsub("X", "", names(gdp_2000))
+names(life_expectancy) <- gsub("X", "", names(life_expectancy))
+names(unemp_fems) <- gsub("X", "", names(unemp_fems))
+names(unemp_males) <- gsub("X", "", names(unemp_males))
+names(suicides) <- gsub("X", "", names(suicides))
+names(healthcare) <- gsub("X", "", names(healthcare))
+
+names(arms_in) <- sub("^Arms.imports..constant.1990.US..",
+                      "country", names(arms_in))
+names(arms_out) <- sub("^Arms.exports..constant.1990.US..",
+                       "country", names(arms_out))
+names(gdp_2000) <- sub("^Income.per.person..fixed.2000.US..",
+                       "country", names(gdp_2000)) 
+names(life_expectancy) <- sub("^Life.expectancy.with.projections..Yellow.is.IHME",
+                              "country", names(life_expectancy))
+names(unemp_fems) <- sub("^Female.15..unemployment....",
+                              "country", names(unemp_fems))
+names(unemp_males) <- sub("^Male.15..unemployment....",
+                              "country", names(unemp_males))
+names(suicides) <- sub("^Suicide..age.adjusted..per.100.000.standard.population",
+                       "country", names(suicides)) 
+names(healthcare) <- sub("^Total.expenditure.on.health.as.percentage.of.GDP..gross.domestic.product.",
+                       "country", names(healthcare)) 
+```
+
+pick year 2002. Inflation coefficient going from USD 1990 -> 2002 is 1.37643458
+```{r}
+all_info = arms_in[c("country", "2002")]
+names(all_info)[2] <- "imports_2002"
+
+exports_dum = arms_out[, c("country", "2002")]
+all_info = merge(all_info, exports_dum, by="country")
+names(all_info)[3] <- "exports_2002"
+
+gdp_dum = gdp_2000[, c("country", "2002")]
+all_info = merge(all_info, gdp_dum, by="country")
+names(all_info)[4] <- "gdp_2002"
+
+life_dum = life_expectancy[, c("country", "2002")]
+all_info = merge(all_info, life_dum, by="country")
+names(all_info)[5] <- "life_expectancy_2002"
+
+suicides_dum = suicides[, c("country", "2002")]
+all_info = merge(all_info, suicides_dum, by="country")
+names(all_info)[6] <- "suicides_per_100k_2002"
+
+health_dum = healthcare[, c("country", "2002")]
+all_info = merge(all_info, health_dum, by="country")
+names(all_info)[7] <- "healthcare_pct_gdp_2002"
+```
+
+First, let's put suicides and healthcare into buckets
+```{r}
+all_info$suicide_buckets = cut(all_info$suicides_per_100k_2002, 
+                               quantile(all_info$suicides_per_100k_2002,
+                                        probs=c(0.0, 0.2, 0.4, 0.6, 0.8, 1.0)))
+all_info$health_buckets = cut(all_info$healthcare_pct_gdp_2002,
+                              c(0, 5, 10, 15, 20))
+```
+
+
+Lets see arms imports vs life expectancy, colored by suicides
+```{r}
+plt1 = ggplot(data=subset(all_info, imports_2002 > 0),
+       aes(x=life_expectancy_2002, y=imports_2002)) + 
+  geom_jitter(aes(color=health_buckets)) +
+  ylab("Arms Imports 2002 (USD - 1990)") +
+  scale_y_log10()
+
+plt2 = ggplot(data=subset(all_info, imports_2002 > 0),
+       aes(x=life_expectancy_2002, y=imports_2002)) + 
+  geom_jitter(aes(color=suicide_buckets)) +
+  xlab("Life Expectancy (years, 2002)") +
+  ylab("Arms Imports 2002 (USD - 1990)") +
+  scale_y_log10()
+
+grid.arrange(plt1, plt2, nrow=2)
+ggsave("arms_imports_vs_lifetime.png")
+```
+
+
+Now let's see the suicide rate vs gdp, colored by percent of gdp
+spent on healthcare
+```{r}
+ggplot(data=all_info, 
+       aes(x=gdp_2002, y=life_expectancy_2002)) + 
+  geom_jitter(aes(color=health_buckets)) +
+  ylab("Life Expectancy (years, 2002)") +
+  xlab("GDP Per Capita in 2002 (USD - 2000)") +
+  scale_x_log10(breaks=c(1E2, 3.16E2, 1E3, 3.16E3, 1E4, 3.16E4, 1E5, 3.16E5)) + geom_smooth()
+ggsave("lifetime_vs_gdp.png")
 ```
 

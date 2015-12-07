@@ -1,0 +1,29 @@
+---
+title: "L5_gene_expression"
+output: html_document
+---
+
+load libraries
+```{r}
+library(ggplot2)
+library(reshape2)
+```
+
+
+load data
+```{r}
+setwd("/Users/Nick/Documents/udacity/projects/data_analysis_with_r/")
+nci = read.csv("gene_expression_tumors.tsv", sep="\t")
+```
+
+
+Create a heat map!
+```{r}
+nci.long.samp <- melt(as.matrix(nci[1:200,]))
+names(nci.long.samp) <- c('gene', 'case', 'value')
+head(nci.long.samp)
+
+ggplot(aes(y = gene, x = case, fill = value), data = nci.long.samp) +
+  geom_tile() + scale_fill_gradientn(colours = colorRampPalette(c("blue", "red"))(100))
+```
+

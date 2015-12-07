@@ -1,0 +1,59 @@
+---
+title: "L5_yogurt"
+output: html_document
+---
+
+Load in our libraries
+```{r}
+library(ggplot2)
+```
+
+
+Load in the data
+```{r}
+yo = read.csv("yogurt.csv")
+
+yo$id = factor(yo$id)
+yo$time = factor(yo$time)
+```
+
+
+Create a histogram of yogurt prices
+```{r}
+ggplot(data=yo, aes(x = price)) + geom_histogram(binwidth=5)
+```
+
+
+Create a new variable called "all.purchases" that gives the total counts of yogurt for each observation or household.
+```{r}
+yo = transform(yo, all.purchases=strawberry + blueberry + pina.colada + plain + mixed.berry)
+```
+
+
+Histogram of all.purchases
+```{r}
+ggplot(data=yo, aes(x = all.purchases)) + geom_histogram(binwidth=1)
+```
+
+
+Scatterplot of price vs time
+```{r}
+ggplot(data=yo, aes(x = time, y = price)) + geom_point(alpha=0.1)
+```
+
+
+Let's look at a "random" sample of 16 households
+```{r}
+set.seed(4)
+sample.ids = sample(levels(yo$id), 16)
+
+ggplot(data=subset(yo, id %in% sample.ids), aes(x = time, y = price)) +
+  facet_wrap( ~ id) + 
+  geom_point(aes(size=all.purchases), pch=1) +
+  xlab("Timestamp") + ylab("Price ($)") + theme(axis.text.x = element_blank())
+
+ggsave("random_households.png")
+```
+
+
+

@@ -7,6 +7,8 @@ Load the diamonds data set, as well as ggplot2
 ```{r}
 setwd("/Users/Nick/Documents/udacity/projects/data_analysis_with_r/")
 library(ggplot2)
+library(gridExtra)
+library(GGally)
 data(diamonds)
 ```
 
@@ -171,3 +173,46 @@ ggplot(data=diamonds, aes(x=cut, y=price/carat)) +
   geom_jitter(aes(color=color), alpha=0.2) + 
   facet_wrap(~ clarity)
 ```
+
+
+---
+Lesson 6
+---
+Diamond data of price vs carat with a linear model
+```{r}
+ggplot(data=diamonds, aes(x=carat, y=price)) + geom_point(shape=21) +
+  xlim(c(0, quantile(diamonds$carat, probs=0.9))) +
+  ylim(c(0, quantile(diamonds$price, probs=0.9))) +
+  stat_smooth(method="lm")
+```
+
+
+All things vs all things!
+```{r}
+set.seed(20022012)
+diamond_samp = diamonds[sample(1:length(diamonds$price), 10000), ]
+ggpairs(diamond_samp, params = c(shape = I("."), outlier.shape = I(".")))
+```
+
+
+Histograms of price, with one being in log10
+```{r}
+plt1 = ggplot(data = diamonds, aes(x = price)) + geom_histogram() +
+  ggtitle("Price")
+  plt2 = ggplot(data = diamonds, aes(x = price)) + geom_histogram(binwidth=0.01) +
+    scale_x_log10(breaks = c(100, 300, 1000, 3000, 10000)) +
+    ggtitle("Price (log10)")
+grid.arrange(plt1, plt2, ncol=2)
+```
+
+
+Scatter plot transformations
+```{r}
+ggplot(data = diamonds, aes(x = carat, y = price)) + 
+  geom_point() +
+  scale_y_continuous(trans = log10_trans()) +
+  ggtitle("Price")
+```
+
+
+

@@ -340,6 +340,7 @@ plt1 = ggplot(data=subset(all_info, imports_2002 > 0),
   geom_jitter(aes(color=health_buckets)) +
   ylab("Arms Imports 2002 (USD - 1990)") +
   scale_y_log10()
+ggsave("arms_imports_vs_lifetime_healthcare.png")
 
 plt2 = ggplot(data=subset(all_info, imports_2002 > 0),
        aes(x=life_expectancy_2002, y=imports_2002)) + 
@@ -349,7 +350,7 @@ plt2 = ggplot(data=subset(all_info, imports_2002 > 0),
   scale_y_log10()
 
 grid.arrange(plt1, plt2, nrow=2)
-ggsave("arms_imports_vs_lifetime.png")
+ggsave("arms_imports_vs_lifetime_suicides.png")
 ```
 
 

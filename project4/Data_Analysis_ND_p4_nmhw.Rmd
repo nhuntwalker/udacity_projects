@@ -1,0 +1,104 @@
+---
+title: "Data_Analysis_ND_p4_nmhw"
+author: Nicholas Hunt-Walker
+output: html_document
+---
+
+Before we do anything, let's call the requisite libraries and go to the right working directory.
+```{r}
+library(ggplot2)
+library(gridExtra)
+library(GGally)
+setwd("/Users/Nick/Documents/udacity/projects/project4/")
+```
+
+
+And now we load the data. Note that the column descriptions can be found [here](./Prosper Loan Data - Variable Definitions.xlsx)
+```{r}
+prosper <- read.csv("prosperLoanData.csv")
+names(prosper)
+```
+
+
+Some things to know about the data set before moving forward:
+- 113,937 observations, each with 81 (!!!!) variables
+- Last updated 03/11/2014
+
+---
+
+There are five columns that contain date information. These are:
+- ListingCreationDate
+- ClosedDate
+- DateCreditPulled
+- FirstRecordedCreditLine
+- LoanOriginationDate
+
+These may be useful for later, but as they stand right now they're not usable. Let's make them datetime objects. 
+
+Write a function that takes in a dataframe and a column of choice, and adds columns to the dataframe that splits the datetime object. I want the year, the month (maybe cyclical?), the day, as well as the date as a decimal of the year.
+```{r}
+split_to_columns <- function(df, input_colnum, output_colname_assoc_arr) {
+  dates <- strptime(df[, input_colnum], format="%Y-%m-%d %H:%M:%S")
+  df[output_colname_assoc_arr["year"]] <- as.numeric(strftime(dates, format="%Y"))
+  df[output_colname_assoc_arr["month"]] <- as.numeric(strftime(dates, format="%m"))
+  df[output_colname_assoc_arr["day"]] <- as.numeric(strftime(dates, format="%d"))
+  df[output_colname_assoc_arr["decimal_date"]] <- df[output_colname_assoc_arr["year"]] + (as.numeric(strftime(dates, format="%j"))/366)
+  
+  return(df)
+}
+```
+
+```{r}
+#column 3
+listing_creation_date_set <- c()
+listing_creation_date_set["year"] <- "ListingCreationDate_year"
+listing_creation_date_set["month"] <- "ListingCreationDate_month"
+listing_creation_date_set["day"] <- "ListingCreationDate_day"
+listing_creation_date_set["decimal_date"] <- "ListingCreationDate_decimal"
+
+#column 7
+closed_date_set <- c()
+closed_date_set["year"] <- "ClosedDate_year"
+closed_date_set["month"] <- "ClosedDate_month"
+closed_date_set["day"] <- "ClosedDate_day"
+closed_date_set["decimal_date"] <- "ClosedDate_decimal"
+
+#column 25
+credit_pulled_set <- c()
+credit_pulled_set["year"] <- "DateCreditPulled_year"
+credit_pulled_set["month"] <- "DateCreditPulled_month"
+credit_pulled_set["day"] <- "DateCreditPulled_day"
+credit_pulled_set["decimal_date"] <- "DateCreditPulled_decimal"
+
+#column 28
+first_recorded_credit_set <- c()
+first_recorded_credit_set["year"] <- "FirstRecordedCreditLine_year"
+first_recorded_credit_set["month"] <- "FirstRecordedCreditLine_month"
+first_recorded_credit_set["day"] <- "FirstRecordedCreditLine_day"
+first_recorded_credit_set["decimal_date"] <- "FirstRecordedCreditLine_decimal"
+
+#column 65
+loan_orig_date_set <- c()
+loan_orig_date_set["year"] <- "LoanOriginationDate_year"
+loan_orig_date_set["month"] <- "LoanOriginationDate_month"
+loan_orig_date_set["day"] <- "LoanOriginationDate_day"
+loan_orig_date_set["decimal_date"] <- "LoanOriginationDate_decimal"
+
+prosper <- split_to_columns(prosper, 3, listing_creation_date_set)
+prosper <- split_to_columns(prosper, 7, closed_date_set)
+prosper <- split_to_columns(prosper, 25, credit_pulled_set)
+prosper <- split_to_columns(prosper, 28, first_recorded_credit_set)
+prosper <- split_to_columns(prosper, 65, loan_orig_date_set)
+```
+
+
+First Plots: Histograms of things
+```{r}
+ggplot(data=subset(prosper, !is.na(Term)), aes(x=ListingCreationDate_decimal)) + 
+  geom_histogram(binwidth=1/12) + 
+  xlab("Listing Creation Date") +
+  scale_x_continuous(breaks=seq(2005, 2015)) +
+  facet_wrap(~Term, ncol = 1, scales="free_y")
+```
+
+

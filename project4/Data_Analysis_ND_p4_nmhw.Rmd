@@ -94,11 +94,40 @@ prosper <- split_to_columns(prosper, 65, loan_orig_date_set)
 
 First Plots: Histograms of things
 ```{r}
+#Listing Creation Date split by term length
 ggplot(data=subset(prosper, !is.na(Term)), aes(x=ListingCreationDate_decimal)) + 
   geom_histogram(binwidth=1/12) + 
   xlab("Listing Creation Date") +
   scale_x_continuous(breaks=seq(2005, 2015)) +
   facet_wrap(~Term, ncol = 1, scales="free_y")
+
+#Borrower APR split by term length
+ggplot(data=subset(prosper, !is.na(Term)), aes(x=BorrowerAPR)) +
+  geom_histogram() +
+  xlab("Borrower APR (%)") +
+  facet_wrap(~Term, ncol = 1, scales="free_y")
+
+ggplot(data=subset(prosper, !is.na(Term) & !is.na(ProsperRating..Alpha.)), aes(x=ProsperRating..Alpha.)) +
+  geom_histogram() +
+  xlab("Credit Rating") +
+  facet_wrap(~Term, ncol = 1, scales="free_y")
+
+ggplot(data=prosper, aes(x=ListingCategory..numeric.)) +
+  geom_histogram(binwidth=1) +
+  xlab("Listing Category")
+```
+
+Is the stated monthly income a continuous series of numbers or is it split into categories?
+```{r}
+summary(prosper$StatedMonthlyIncome)
+```
+Looks to be continuous to me. between 0 and $1.75 million. I should be able to make a histogram of that too. This is the stated monthly income *at the time of borrowing*
+```{r}
+ggplot(data=prosper, aes(x=StatedMonthlyIncome)) +
+  geom_histogram(binwidth=1000) +
+  xlim(0, 50000) +
+  xlab("Stated Monthly Income ($)") +
+  facet_wrap(~Term, ncol=1, scales="free_y")
 ```
 
 

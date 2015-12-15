@@ -11,6 +11,9 @@ library(gridExtra)
 library(GGally)
 library(scales)
 library(memisc)
+library(RColorBrewer)
+library(RCurl)
+library(bitops)
 data(diamonds)
 ```
 
@@ -251,4 +254,99 @@ ggplot(aes(carat, price), data = diamonds) +
                      breaks = c(350, 1000, 5000, 10000, 15000)) +
   ggtitle('Price (log10) by Cube-Root of Carat')
 ```
+
+
+Color the points by the diamond's clarity
+```{r}
+ggplot(aes(carat, price), data = diamonds) + 
+  geom_point(position="jitter", alpha=0.2, aes(color=clarity)) + 
+  scale_color_brewer(type = 'div',
+    guide = guide_legend(title = 'Clarity', reverse = T,
+    override.aes = list(alpha = 1, size = 2))) +  
+  scale_x_continuous(trans = cuberoot_trans(), limits = c(0.2, 3),
+                     breaks = c(0.2, 0.5, 1, 2, 3)) + 
+  scale_y_continuous(trans = log10_trans(), limits = c(350, 15000),
+                     breaks = c(350, 1000, 5000, 10000, 15000)) +
+  ggtitle('Price (log10) by Cube-Root of Carat and Clarity')
+```
+
+
+Now color the points by the diamond's cut
+```{r}
+ggplot(aes(carat, price), data = diamonds) + 
+  geom_point(position="jitter", alpha=0.2, aes(color=cut)) + 
+  scale_color_brewer(type = 'div',
+    guide = guide_legend(title = 'Cut', reverse = T,
+    override.aes = list(alpha = 1, size = 2))) +  
+  scale_x_continuous(trans = cuberoot_trans(), limits = c(0.2, 3),
+                     breaks = c(0.2, 0.5, 1, 2, 3)) + 
+  scale_y_continuous(trans = log10_trans(), limits = c(350, 15000),
+                     breaks = c(350, 1000, 5000, 10000, 15000)) +
+  ggtitle('Price (log10) by Cube-Root of Carat and Cut')
+```
+
+
+Lastly, color the points by the diamond's color
+```{r}
+ggplot(aes(carat, price), data = diamonds) + 
+  geom_point(position="jitter", alpha=0.2, aes(color=color)) + 
+  scale_color_brewer(type = 'div',
+    guide = guide_legend(title = 'Color', reverse = F,
+    override.aes = list(alpha = 1, size = 2))) +  
+  scale_x_continuous(trans = cuberoot_trans(), limits = c(0.2, 3),
+                     breaks = c(0.2, 0.5, 1, 2, 3)) + 
+  scale_y_continuous(trans = log10_trans(), limits = c(350, 15000),
+                     breaks = c(350, 1000, 5000, 10000, 15000)) +
+  ggtitle('Price (log10) by Cube-Root of Carat and Color')
+```
+
+
+Create a linear model for price
+```{r}
+m1 <- lm(I(log(price)) ~ I(carat^(1/3)), data=diamonds)
+m2 <- update(m1, ~ . + carat)
+m3 <- update(m2, ~ . + cut)
+m4 <- update(m3, ~ . + color)
+m5 <- update(m4, ~ . + clarity)
+
+mtable(m1, m2, m3, m4, m5)
+```
+
+
+Let's get an updated diamond data set
+```{r}
+load("BigDiamonds.Rda")
+
+```
+
+
+Your task is to build five linear models like Solomon
+did for the diamonds data set only this
+time you'll use a sample of diamonds from the
+diamondsbig data set.
+```{r}
+m1 <- lm(I(log(price)) ~ I(carat^(1/3)), data=subset(diamondsbig, (cert == "GIA") & (price < 10000)))
+m2 <- update(m1, ~ . + carat)
+m3 <- update(m2, ~ . + cut)
+m4 <- update(m3, ~ . + color)
+m5 <- update(m4, ~ . + clarity)
+
+mtable(m1, m2, m3, m4, m5)
+```
+
+
+Let's use that model to predict diamond price. Example diamond
+from BlueNile:
+Round 1.00 Very Good I VS1 $5,601
+```{r}
+thisDiamond = data.frame(carat = 1.00, cut = "V.Good", 
+                         color = "I", clarity = "VS1")
+modelEstimate = predict(m5, newdata = thisDiamond, interval="prediction",
+                        level = 0.95)
+actualEstimate = exp(modelEstimate)[1]
+estimateSig = (exp(modelEstimate)[3] - exp(modelEstimate)[2])/2
+truth = 5601
+```
+
+
 

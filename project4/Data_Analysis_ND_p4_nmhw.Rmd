@@ -148,4 +148,81 @@ ggplot(data=subset(prosper, StatedMonthlyIncome < 10000), aes(y=LoanOriginalAmou
   ylab("Loan Principal ($)") 
 ```
 
+I wonder if there's any visible difference when coloring on Borrower APR instead of just term.
+```{r}
+ggplot(data=subset(prosper, (StatedMonthlyIncome < 10000) & (EmploymentStatus != "")),
+       aes(y=LoanOriginalAmount, x=StatedMonthlyIncome)) +
+  geom_point(position="jitter", alpha=0.2, aes(color=factor(EmploymentStatus))) +
+  xlab("Stated Monthly Income ($)") +
+  ylab("Loan Principal ($)") 
+```
+
+Somewhat. Smaller loans for those employed part time. A ton of borrowers are employed or self-employed though. Let's see the employment statuses of borrowers more explicitly.
+```{r}
+ggplot(data=subset(prosper, (EmploymentStatus != "") & (EmploymentStatus != "Not available")), aes(x=EmploymentStatus)) +
+  geom_bar() +
+  xlab("Employment Status") +
+  scale_y_log10()
+```
+
+This could be an interesting thing to look at. Is there a split on Term?
+```{r}
+ggplot(data=subset(prosper, (EmploymentStatus != "") & (EmploymentStatus != "Not available")), aes(x=EmploymentStatus)) +
+  geom_bar(aes(fill=factor(Term))) +
+  xlab("Employment Status") +
+  scale_y_log10()
+```
+Oooh this is money right here. 
+
+Here's another question then, is there a significant difference between the ways different employment statuses borrow over time?
+```{r}
+ggplot(data=subset(prosper, !is.na(LoanOriginalAmount) & (EmploymentStatus != "")), aes(x=ListingCreationDate_decimal, y=LoanOriginalAmount)) + 
+  geom_point(aes(color=factor(EmploymentStatus)), alpha=0.1, position="jitter") + 
+  xlab("Listing Creation Date") +
+  scale_x_continuous(breaks=seq(2005, 2015)) +
+  scale_y_sqrt()
+```
+
+The employed and full-time borrowers wash out everyone else, so let's see what it looks like without them.
+```{r}
+ggplot(data=subset(prosper, !is.na(LoanOriginalAmount) & (EmploymentStatus != "") & (EmploymentStatus != "Not available") & (EmploymentStatus != "Employed") & (EmploymentStatus != "Full-time")), aes(x=ListingCreationDate_decimal, y=LoanOriginalAmount)) + 
+  geom_point(aes(color=factor(EmploymentStatus)), alpha=0.2, position="jitter") + 
+  xlab("Listing Creation Date") +
+  scale_x_continuous(breaks=seq(2005, 2015))
+```
+
+
+Onto other things. There's a variable for the percent of the listing funded. I suspect there may be a correlation between the PercentFunded and the amount asked for.
+```{r}
+with(prosper, cor.test(LoanOriginalAmount, PercentFunded))
+```
+-0.01024815 is basically no correlation at all. Disappointment. 
+
+Let's see what that PercentFunded parameter looks like
+```{r}
+ggplot(data=subset(prosper, !is.na(PercentFunded)), aes(x=PercentFunded)) +
+  geom_histogram(binwidth=0.1, origin=-0.05) +
+  xlim(0.6, 1.1)
+
+ggplot(data=subset(prosper, !is.na(PercentFunded)), aes(x=PercentFunded)) +
+  geom_histogram(binwidth=0.1, origin=-0.05) +
+  xlim(0.6, 1.1) + scale_y_log10()
+```
+Oh that's why. Because the vaaaaast majority of loans are fully funded. That was useless and enlightening all at once. 
+
+Let's quantify just how many are fully funded
+```{r}
+sum(with(prosper, (PercentFunded == 1.0) & !is.na(PercentFunded))) / sum(with(prosper, !is.na(PercentFunded))) * 100
+```
+99.236%! Yeah, we're not going to get any meaningful correlations out of this one.
+
+
+
+
+
+
+
+
+
+
 

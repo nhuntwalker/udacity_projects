@@ -92,7 +92,7 @@ prosper <- split_to_columns(prosper, 65, loan_orig_date_set)
 ```
 
 
-First Plots: Histograms of things
+First Plots: Histograms of potentially interesting things
 ```{r}
 #Listing Creation Date split by term length
 ggplot(data=subset(prosper, !is.na(Term)), aes(x=ListingCreationDate_decimal)) + 
@@ -128,6 +128,24 @@ ggplot(data=prosper, aes(x=StatedMonthlyIncome)) +
   xlim(0, 50000) +
   xlab("Stated Monthly Income ($)") +
   facet_wrap(~Term, ncol=1, scales="free_y")
+```
+
+What about the original loan amount?
+```{r}
+ggplot(data=prosper, aes(x=LoanOriginalAmount)) +
+  geom_histogram() +
+  xlab("Loan Principal ($)")
+```
+Hmm.... Is there some correlation between loan amount and stated monthly income?
+```{r}
+with(prosper, cor.test(LoanOriginalAmount, StatedMonthlyIncome))
+```
+Correlation coefficient = 0.2012595. Quite lower than what I was expecting. Let's see what the scatterplot says
+```{r}
+ggplot(data=subset(prosper, StatedMonthlyIncome < 10000), aes(y=LoanOriginalAmount, x=StatedMonthlyIncome)) +
+  geom_point(position="jitter", alpha=0.2, aes(color=factor(Term))) +
+  xlab("Stated Monthly Income ($)") +
+  ylab("Loan Principal ($)") 
 ```
 
 

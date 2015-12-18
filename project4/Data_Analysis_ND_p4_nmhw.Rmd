@@ -216,11 +216,185 @@ sum(with(prosper, (PercentFunded == 1.0) & !is.na(PercentFunded))) / sum(with(pr
 ```
 99.236%! Yeah, we're not going to get any meaningful correlations out of this one.
 
+Another column is LP_NetPrincipalLoss. It's the principal that remains uncollected after any recoveries. Curious to see if there's any relationship between that and the loan amount. Of course, we start with the cor.test function, then plot some stuff up to see the distribution.
+```{r}
+with(prosper, cor.test(LP_NetPrincipalLoss, LoanOriginalAmount))
+```
+A correlation coefficient of 0.1274. Not the worst I've seen thus far, but still not great. Let's see the plot
+```{r}
+ggplot(data=subset(prosper, !is.na(LP_NetPrincipalLoss)), aes(x=LoanOriginalAmount, y = LP_NetPrincipalLoss)) + geom_point(alpha=0.2, position="jitter") +
+  xlab("Loan Principal ($)") +
+  ylab("Net Principal Loss ($)")
+```
+Ok now this is actually somewhat interesting. It seems that when there is a non-zero loss, there might actually be some correlation. Let's test that again with cor.test
+```{r}
+with(subset(prosper, LP_NetPrincipalLoss > 0), cor.test(LP_NetPrincipalLoss, LoanOriginalAmount))
+```
+WHOA! 0.8895%! That is a very strong positive correlation between loss on the principal and the principal loan amount. Plot says...! (with a linear model overplotted, as well as a 1-1 line for reference)
+```{r}
+ggplot(data=subset(prosper, LP_NetPrincipalLoss > 0), aes(x=LoanOriginalAmount, y = LP_NetPrincipalLoss)) + geom_point(alpha=0.2, position="jitter") +
+  xlab("Loan Principal ($)") +
+  ylab("Net Principal Loss ($)") +
+  stat_smooth(method='lm') +
+  geom_abline(intercept=0, slope=1, color="red", linetype=2)
+```
+Now that's interesting. It seems that in many cases, especially for the smaller loans, when there's a loss it's on most of the loan if not all of the loan. 
+
+Let's plot the median Net Principal Loss vs Loan Principal here. For clarity, we should probably bin up the loan principal.
+```{r}
+loss_bin = 500
+ggplot(data=subset(prosper, LP_NetPrincipalLoss > 0), aes(x=round(LoanOriginalAmount / loss_bin) * loss_bin, y = LP_NetPrincipalLoss)) + geom_point(alpha=0.2, position="jitter") +
+  xlab("Loan Principal ($)") +
+  ylab("Net Principal Loss ($)") +
+  geom_line(stat="summary", color="red", fun.y = median, size=1)
+```
+Ther's another dimension to this that I'm not looking at. 
+
+Does Income Range have an effect on how much of the loan is lost?
+```{r}
+loss_bin = 500
+ggplot(data=subset(prosper, (LP_NetPrincipalLoss > 0) & (IncomeRange != "Not displayed") & (IncomeRange != "Not employed") & (IncomeRange != "$0")), aes(x=round(LoanOriginalAmount / loss_bin) * loss_bin, y = LP_NetPrincipalLoss)) + geom_point(alpha=0.5, position="jitter", aes(color=factor(IncomeRange))) +
+  xlab("Loan Principal ($)") +
+  ylab("Net Principal Loss ($)") +
+  geom_line(stat="summary", color="red", fun.y = median, size=1)
+```
+No real effect here. Most of these losses are coming in for the $25 - 75k range. 
+
+What about the rating of the loan? For reference, AA is the lowest risk loan, and HR is highest-risk.
+```{r}
+loss_bin = 500
+ggplot(data=subset(prosper, (LP_NetPrincipalLoss > 0) & (ProsperRating..Alpha. != "")), aes(x=round(LoanOriginalAmount / loss_bin) * loss_bin, y = LP_NetPrincipalLoss)) + geom_point(alpha=0.5, position="jitter", aes(color=factor(ProsperRating..Alpha.))) +
+  xlab("Loan Principal ($)") +
+  ylab("Net Principal Loss ($)") +
+  geom_line(stat="summary", color="red", fun.y = median, size=1)
+```
+Interestingly enough, the highest-risk loans aren't dominating this landscape of loan principal loss. At the low end? Sure there's a bunch. But most of the loans lost seem to be mid-range in risk.
+
+Another dimension we haven't looked at yet is the actual loss vs. the estimated loss. Let's check that out
+```{r}
+ggplot(data=subset(prosper, (LP_NetPrincipalLoss > 0)), aes(x=EstimatedLoss, y=LP_NetPrincipalLoss/LoanOriginalAmount)) + geom_point(alpha=0.5, position="jitter") +
+  xlab("Estimated Loss Rate") +
+  ylab("Actual Principal Loss Rate")
+```
+There's effectively no correlation. cor.test will confirm
+```{r}
+with(subset(prosper, (LP_NetPrincipalLoss > 0)), cor.test(EstimatedLoss, LP_NetPrincipalLoss/LoanOriginalAmount))
+with(prosper, cor.test(EstimatedLoss, LP_NetPrincipalLoss/LoanOriginalAmount))
+```
+0.08453763 is basically nothing when only considering loans that have had losses. 0.2102577 with all loans, though still not well correlated when the data is plotted.
 
 
+Let's take these questions in a different direction and think from the point of view of the vendor. Let's first ask, how much have lenders made on loans given? Is there some correlation with loan term? How about over time?
+```{r}
+ggplot(data=prosper, aes(x=LenderYield)) + geom_histogram() +
+  xlab("Lender Yield Rate")
+
+ggplot(data=prosper, aes(x=LenderYield)) + 
+  geom_histogram(aes(fill=factor(Term))) +
+  xlab("Lender Yield Rate") +
+  scale_y_sqrt()
+
+ggplot(data=prosper, aes(x=LoanOriginationDate_decimal, y=LenderYield)) +
+  geom_point(alpha=0.2) +
+  xlab("Loan Origination Date") +
+  ylab("Lender Yield Rate") +
+  scale_x_continuous(breaks=seq(2005, 2014, 1))
+```
+What this tells me is that no matter what, lenders have almost always made money on a loan. It's also effectively telling me that the loan yield rate doesn't depend much on time. Additionally, while the vast majority of loans are for 36 months, terms don't seem to matter as much in whether or not there will be appreciable yield (although short term loans have a yield cap below 0.3). Interesting how lending effectively came to a stop between the end of 2008 and mid 2009. The financial crisis really shut things down.
+
+I'm curious about these parameters involving "investments made by friends". Let's do histograms and time-series stuff.
+```{r}
+plt1 = ggplot(data=prosper, aes(x=InvestmentFromFriendsCount)) + 
+  geom_histogram() +
+  xlab("Number of Friends Investing")
+plt2 = ggplot(data=prosper, aes(x=InvestmentFromFriendsAmount)) + 
+  geom_histogram() +
+  xlab("Amount Friends have Invested ($)")
+plt3 = ggplot(data=prosper, aes(x=Investors)) + 
+  geom_histogram() +
+  xlab("Number of Investors Funding the Loan")
+
+grid.arrange(plt1, plt2, plt3, ncol=1)
+```
+Largely fruitless. Except for that last one. Let's look at that in some greater detail.
+
+```{r}
+bw = 25
+ggplot(data=prosper, aes(x=Investors)) + 
+  geom_histogram(binwidth=bw, origin=-bw/2) +
+  xlab("Number of Investors Funding the Loan") +
+  scale_y_log10()
+```
+Hmm. I have an idea of how this plays out with respect to loan amount but I want to see it for myself. 
+
+First, I need to bin up some data.
+```{r}
+prosper$LoanOriginalAmount.buckets <- cut(prosper$LoanOriginalAmount, 
+                                          quantile(prosper$LoanOriginalAmount,
+                                                   probs=c(0, .2, .4, .6, .8, 1.)))
+```
+Now revisit those investors
+```{r}
+bw = 25
+ggplot(data=prosper, aes(x=Investors)) + 
+  geom_histogram(aes(fill=LoanOriginalAmount.buckets)) +
+  xlab("Number of Investors Funding the Loan") +
+  scale_x_sqrt(breaks=c(15, 170, 500, 1000))
+```
+
+I don't really...see this one going anywhere. I've stepped through a number of interesting variables though. Let's plot N things vs N things, then start up on the final report.
+```{r}
+interesting_columns <- c(4,8,10,16,17,20,22,23,24,26,27,37,47,50,75,78)
+ggpairs(prosper, columns=interesting_columns, axisLabels="internal")
+```
+Not much of interest here. 
+
+Let's check on one more thing that just came to mind: Debt/Income ratio vs avg credit rating, colored by loan amount
+```{r}
+bw = 20
+plt1 = ggplot(data=subset(prosper, !is.na(DebtToIncomeRatio) & !is.na(CreditScoreRangeUpper) & !is.na(CreditScoreRangeLower) & (CreditScoreRangeLower > 0) & (CreditScoreRangeUpper > 0)), 
+       aes(x=round((CreditScoreRangeUpper + CreditScoreRangeLower)/2 / bw) * bw, y=DebtToIncomeRatio)) +
+  geom_point(position="jitter", alpha=0.2, aes(color=LoanOriginalAmount.buckets)) +
+  geom_line(stat="summary", color="green", fun.y=mean)
+
+plt2 = ggplot(data=subset(prosper, !is.na(DebtToIncomeRatio) & !is.na(CreditScoreRangeUpper) & !is.na(CreditScoreRangeLower) & (CreditScoreRangeLower > 0) & (CreditScoreRangeUpper > 0) & (DebtToIncomeRatio < 1.25)), 
+       aes(x=round((CreditScoreRangeUpper + CreditScoreRangeLower)/2 / bw) * bw, y=DebtToIncomeRatio)) +
+  geom_point(position="jitter", alpha=0.2, aes(color=LoanOriginalAmount.buckets)) +
+  geom_line(stat="summary", color="green", fun.y=mean)
+
+grid.arrange(plt1, plt2, ncol=1)
+```
+Not entirely surprising but still interesting to see, the highest loans are given to people with better credit scores, while lower loans are available for most folks. What was more interesting to see was that the $5,000 - $15,000 range of loans was available all the way down to a credit score of 600. That's a lot lower than I had expected, so I've learned something there. Also interesting to see the few cases where high debt/income ratios were still given loans. They were few and far between. Note that any debt/income ratio larger than 10 is shown as 10.01. So the structure for really high debt/income ratios is pretty much lost. 
+
+I'm curious about the breakdown by the original loan amount buckets, so let's do that plot and then move on.
+```{r}
+ggplot(data=subset(prosper, !is.na(DebtToIncomeRatio) & !is.na(CreditScoreRangeUpper) & !is.na(CreditScoreRangeLower) & (CreditScoreRangeLower > 0) & (CreditScoreRangeUpper > 0) & (DebtToIncomeRatio < 1.25)), 
+       aes(x=round((CreditScoreRangeUpper + CreditScoreRangeLower)/2 / bw) * bw, y=DebtToIncomeRatio)) +
+  geom_point(position="jitter", alpha=0.2) +
+  geom_line(stat="summary", color="green", fun.y=mean) +
+  facet_wrap(~LoanOriginalAmount.buckets)
+```
+Apparently, keeping your debt-to-income ratio beneath 0.4 and a credit score > 620 is a great way to qualify for a loan of any type.
+
+Let's make the credit score a little easier to work with by putting that average into our dataframe
+```{r}
+prosper$CreditScoreMean = (prosper$CreditScoreRangeUpper + prosper$CreditScoreRangeLower)/2
+```
 
 
-
+## Predicting Goodness of Borrower
+I want to try to assess the goodness of a borrower with respect to the requested loan amount. I'll parameterize a good borrower by the net principal loss. Obviously, I'd want to only look at loans that have been closed, so only where ClosedDate_decimal is not NA. Here are some parameters that I think will be important to my model:
+- LoanOriginalAmount: The loan's original amount
+- BorrowerRate: The borrower's interest rate
+- CreditScoreMean: The average between the lower and upper range of credit score
+- EmploymentStatusDuration: The length in months of the employment status of the borrower when the listing was created
+- IsBorrowerHomeowner: Boolean for whether or not the borrower is a homeowner
+- OpenCreditLines
+- InquiriesLast6Months
+- CurrentDelinquencies
+- AmountDelinquent
+- AvailableBankcardCredit
+- StatedMonthlyIncome
 
 
 

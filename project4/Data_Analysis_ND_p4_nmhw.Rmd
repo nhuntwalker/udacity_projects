@@ -403,18 +403,24 @@ I want to try to assess the goodness of a borrower with respect to the requested
 - StatedMonthlyIncome: The monthly income the borrower stated at the time the listing was created
 - DebtToIncomeRatio: The debt to income ratio of the borrower 
 ```{r}
-n_entries = length(prosper$Term)
-all_indices = seq(1:n_entries)
+prosper_clean <- subset(prosper, (CreditScoreMean > 250) & (LP_NetPrincipalLoss > 0) &
+                          !is.na(LP_NetPrincipalLoss) & !is.na(CreditScoreMean) &
+                          !is.na(EmploymentStatusDuration) & !is.na(OpenCreditLines) &
+                          !is.na(InquiriesLast6Months) & !is.na(AmountDelinquent) &
+                          !is.na(AvailableBankcardCredit) & !is.na(DebtToIncomeRatio) &
+                          !is.na(ClosedDate_decimal))
+
+n_entries <- length(prosper_clean$Term)
+all_indices <- seq(1:n_entries)
 
 set.seed(42)
-rand_samp = sample(1:n_entries, as.integer(0.75 * n_entries)) #replace = False
+rand_samp <- sample(1:n_entries, as.integer(0.75 * n_entries)) #replace = False
 
-prosper_train <- prosper[rand_samp, ]
-prosper_test <- prosper[!(all_indices %in% rand_samp), ]
+prosper_train <- prosper_clean[rand_samp, ]
+prosper_test <- prosper_clean[!(all_indices %in% rand_samp), ]
 
 m1 <- lm(I(LP_NetPrincipalLoss) ~ I(CreditScoreMean), 
-         data=subset(prosper_train,
-                     !is.na(ClosedDate_decimal)))
+         data=prosper_train)
 m2 <- update(m1, ~ . + LoanOriginalAmount)
 m3 <- update(m2, ~ . + EmploymentStatusDuration)
 m4 <- update(m3, ~ . + IsBorrowerHomeowner)
@@ -430,26 +436,89 @@ mtable(m11)
 ```
 First thing to note is that the $R^2$ coefficient isn't very high (0.196). I've learned from [https://cran.r-project.org/web/packages/texreg/vignettes/v55i08.pdf](https://cran.r-project.org/web/packages/texreg/vignettes/v55i08.pdf) that mtable throws asterisks onto coefficients of significance, with the number of asterisks corresponding to the significance level of that coefficient. 
 
-Perhaps we can refine our model. Let's first take out some of the following coefficients that appear to matter least: *EmploymentStatusDuration, AmountDelinquent, OpenCreditLines*. 
-I'm also removing *AvailableBankcardCredit*. While its significance level is 3 asterisks its standard error is on par with its estimated magnitude, and so it goes.
+Perhaps we can refine our model. Let's first take out the following coefficients that appear to matter least: *CreditScoreMean, EmploymentStatusDuration, AmountDelinquent, CurrentDelinquencies, OpenCreditLines, StatedMonthlyIncome, AvailableBankcardCredit*. 
 ```{r}
-set.seed(42)
-rand_samp = sample(1:n_entries, as.integer(0.75 * n_entries)) #replace = False
-
-prosper_train <- prosper[rand_samp, ]
-prosper_test <- prosper[!(all_indices %in% rand_samp), ]
-
-m1 <- lm(I(LP_NetPrincipalLoss) ~ I(CreditScoreMean), 
-         data=subset(prosper_train,
-                     !is.na(ClosedDate_decimal)))
+m1 <- lm(I(LP_NetPrincipalLoss) ~ I(LoanOriginalAmount), 
+         data=prosper_train)
 m2 <- update(m1, ~ . + LoanOriginalAmount)
 m3 <- update(m2, ~ . + IsBorrowerHomeowner)
 m4 <- update(m3, ~ . + InquiriesLast6Months)
-m5 <- update(m4, ~ . + CurrentDelinquencies)
-m6 <- update(m5, ~ . + StatedMonthlyIncome)
-m7 <- update(m6, ~ . + DebtToIncomeRatio)
+m5 <- update(m4, ~ . + DebtToIncomeRatio)
 
-mtable(m1, m2, m3, m4, m5, m6, m7)
+mtable(m5)
 ```
 Now we get an $R^2$ of 20.3. Better than before, but not by much. Let's test this out on our test set, find the residuals, and plot up some stuff.
+```{r}
+estimated_losses <- predict(m5, newdata = prosper_test, interval="prediction",
+                           level = 0.95)
+prosper_test$residual_loss <- estimated_losses[, 1] - prosper_test$LP_NetPrincipalLoss
+
+plt1 <- ggplot(data=prosper_test, 
+               aes(x=DebtToIncomeRatio, y=residual_loss / LP_NetPrincipalLoss)) + 
+  geom_point(aes(color = LoanOriginalAmount.buckets), alpha=0.2) + 
+  xlim(0, 1.5) +
+  ylim(-1.0, 10)
+plt2 <- ggplot(data=prosper_test, 
+               aes(x=DebtToIncomeRatio, y=LP_NetPrincipalLoss)) + 
+  geom_point() +   xlim(0, 1.5) 
+grid.arrange(plt1, plt2, ncol=1)
+```
+While it looks like I'm over-estimating a ton of entries, I think I might actually be underestimating a bunch and just not realize it. 
+```{r}
+summary(prosper_test$residual_loss/prosper_test$LP_NetPrincipalLoss)
+```
+On average I'm overestimating loss from a given borrower, though my median is saying I'm pretty close with my estimations. That mean is definitely affected by the few outliers, as it exists well outside of my 3rd quartile.
+
+Let's histogram it up.
+```{r}
+ggplot(data=prosper_test, aes(x=residual_loss/LP_NetPrincipalLoss)) + 
+  geom_histogram(binwidth=0.1) +
+  xlim(-1, 10) +
+  facet_wrap(~ LoanOriginalAmount.buckets)
+```
+Last bits for this model. With my random seed set to 42 (the answer to the question of the meaning of life, the universe, and everything), I get the following coefficients:
+(Intercept)                          18.118     
+                                    (39.817)    
+I(LoanOriginalAmount)                 0.731***  
+                                     (0.004)    
+IsBorrowerHomeowner: True/False    -128.066**   
+                                    (43.727)    
+InquiriesLast6Months                 11.915*    
+                                     (5.740)    
+DebtToIncomeRatio                   -58.216**   
+                                    (22.527)    
+
+I want to check that these are consistent regardless of my random seed, so let's do it again!
+```{r}
+set.seed(79)
+rand_samp <- sample(1:n_entries, as.integer(0.75 * n_entries)) #replace = False
+
+prosper_train <- prosper_clean[rand_samp, ]
+prosper_test <- prosper_clean[!(all_indices %in% rand_samp), ]
+
+m1 <- lm(I(LP_NetPrincipalLoss) ~ I(LoanOriginalAmount), 
+         data=prosper_train)
+m2 <- update(m1, ~ . + LoanOriginalAmount)
+m3 <- update(m2, ~ . + IsBorrowerHomeowner)
+m4 <- update(m3, ~ . + InquiriesLast6Months)
+m5 <- update(m4, ~ . + DebtToIncomeRatio)
+
+mtable(m5)
+```
+(Intercept)                          23.605     
+                                    (40.185)    
+I(LoanOriginalAmount)                 0.727***  
+                                     (0.004)    
+IsBorrowerHomeowner: True/False    -131.634**   
+                                    (44.084)    
+InquiriesLast6Months                 12.605*    
+                                     (5.762)    
+DebtToIncomeRatio                   -43.710*    
+                                    (22.263)
+                                    
+Not bad! Not bad at all! Now, how do I interpret this in the context of the original idea of a borrower's goodness?
+- The higher the loan amount, the more the bank should expect to lose on it. The more a borrower asks for, the higher the risk.
+- Owning a home correlates with less money lost on a loan. One can find good buyers amongst homeowners.
+- The more inquiries that have been made into a borrower's credit history, the higher the risk.
+- The higher the debt-to-income ratio, the less a bank should expect to lose. This is surprising to say the least. I'd expect higher debt-to-income ratios to correlate with more money lost per loan, but this imperfect linear model says otherwise.
 

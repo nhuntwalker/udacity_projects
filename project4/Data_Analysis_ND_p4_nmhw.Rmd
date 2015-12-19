@@ -6,9 +6,10 @@ output: html_document
 
 Before we do anything, let's call the requisite libraries and go to the right working directory.
 ```{r}
-library(ggplot2)
-library(gridExtra)
+library(ggplot2) # for making any plots
+library(gridExtra) #for making multi-panel plots
 library(GGally)
+library(memisc) #for data analysis stuff
 setwd("/Users/Nick/Documents/udacity/projects/project4/")
 ```
 
@@ -24,6 +25,12 @@ Some things to know about the data set before moving forward:
 - 113,937 observations, each with 81 (!!!!) variables
 - Last updated 03/11/2014
 
+---
+## Resource Links
+- http://stackoverflow.com/questions/1169248/r-function-for-testing-if-a-vector-contains-a-given-element
+- https://stat.ethz.ch/R-manual/R-devel/library/base/html/strptime.html
+- http://stackoverflow.com/questions/9852832/r-not-in-subset
+- https://cran.r-project.org/web/packages/texreg/vignettes/v55i08.pdf
 ---
 
 There are five columns that contain date information. These are:
@@ -383,20 +390,66 @@ prosper$CreditScoreMean = (prosper$CreditScoreRangeUpper + prosper$CreditScoreRa
 
 
 ## Predicting Goodness of Borrower
-I want to try to assess the goodness of a borrower with respect to the requested loan amount. I'll parameterize a good borrower by the net principal loss. Obviously, I'd want to only look at loans that have been closed, so only where ClosedDate_decimal is not NA. Here are some parameters that I think will be important to my model:
+I want to try to assess the goodness of a borrower with respect to the requested loan amount. I'll parameterize a good borrower by the net principal loss (LP_NetPrincipalLoss). Obviously, I'd want to only look at loans that have been closed, so only where ClosedDate_decimal is not NA. Here are some parameters that I think will be important to my model:
 - LoanOriginalAmount: The loan's original amount
-- BorrowerRate: The borrower's interest rate
 - CreditScoreMean: The average between the lower and upper range of credit score
 - EmploymentStatusDuration: The length in months of the employment status of the borrower when the listing was created
 - IsBorrowerHomeowner: Boolean for whether or not the borrower is a homeowner
-- OpenCreditLines
-- InquiriesLast6Months
-- CurrentDelinquencies
-- AmountDelinquent
-- AvailableBankcardCredit
-- StatedMonthlyIncome
+- OpenCreditLines: Number of open credit lines at the time the credit profile was pulled
+- InquiriesLast6Months: Number of inquiries in the past six months at the time the credit profile was pulled
+- CurrentDelinquencies: Number of accounts delinquent at the time the credit profile was pulled
+- AmountDelinquent: Dollars delinquent at the time the credit profile was pulled
+- AvailableBankcardCredit: The total available credit via bank card at the time the credit profile was pulled
+- StatedMonthlyIncome: The monthly income the borrower stated at the time the listing was created
+- DebtToIncomeRatio: The debt to income ratio of the borrower 
+```{r}
+n_entries = length(prosper$Term)
+all_indices = seq(1:n_entries)
 
+set.seed(42)
+rand_samp = sample(1:n_entries, as.integer(0.75 * n_entries)) #replace = False
 
+prosper_train <- prosper[rand_samp, ]
+prosper_test <- prosper[!(all_indices %in% rand_samp), ]
 
+m1 <- lm(I(LP_NetPrincipalLoss) ~ I(CreditScoreMean), 
+         data=subset(prosper_train,
+                     !is.na(ClosedDate_decimal)))
+m2 <- update(m1, ~ . + LoanOriginalAmount)
+m3 <- update(m2, ~ . + EmploymentStatusDuration)
+m4 <- update(m3, ~ . + IsBorrowerHomeowner)
+m5 <- update(m4, ~ . + OpenCreditLines)
+m6 <- update(m5, ~ . + InquiriesLast6Months)
+m7 <- update(m6, ~ . + CurrentDelinquencies)
+m8 <- update(m7, ~ . + AmountDelinquent)
+m9 <- update(m8, ~ . + AvailableBankcardCredit)
+m10 <- update(m9, ~ . + StatedMonthlyIncome)
+m11 <- update(m10, ~ . + DebtToIncomeRatio)
 
+mtable(m11)
+```
+First thing to note is that the $R^2$ coefficient isn't very high (0.196). I've learned from [https://cran.r-project.org/web/packages/texreg/vignettes/v55i08.pdf](https://cran.r-project.org/web/packages/texreg/vignettes/v55i08.pdf) that mtable throws asterisks onto coefficients of significance, with the number of asterisks corresponding to the significance level of that coefficient. 
+
+Perhaps we can refine our model. Let's first take out some of the following coefficients that appear to matter least: *EmploymentStatusDuration, AmountDelinquent, OpenCreditLines*. 
+I'm also removing *AvailableBankcardCredit*. While its significance level is 3 asterisks its standard error is on par with its estimated magnitude, and so it goes.
+```{r}
+set.seed(42)
+rand_samp = sample(1:n_entries, as.integer(0.75 * n_entries)) #replace = False
+
+prosper_train <- prosper[rand_samp, ]
+prosper_test <- prosper[!(all_indices %in% rand_samp), ]
+
+m1 <- lm(I(LP_NetPrincipalLoss) ~ I(CreditScoreMean), 
+         data=subset(prosper_train,
+                     !is.na(ClosedDate_decimal)))
+m2 <- update(m1, ~ . + LoanOriginalAmount)
+m3 <- update(m2, ~ . + IsBorrowerHomeowner)
+m4 <- update(m3, ~ . + InquiriesLast6Months)
+m5 <- update(m4, ~ . + CurrentDelinquencies)
+m6 <- update(m5, ~ . + StatedMonthlyIncome)
+m7 <- update(m6, ~ . + DebtToIncomeRatio)
+
+mtable(m1, m2, m3, m4, m5, m6, m7)
+```
+Now we get an $R^2$ of 20.3. Better than before, but not by much. Let's test this out on our test set, find the residuals, and plot up some stuff.
 

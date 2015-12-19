@@ -522,3 +522,21 @@ Not bad! Not bad at all! Now, how do I interpret this in the context of the orig
 - The more inquiries that have been made into a borrower's credit history, the higher the risk.
 - The higher the debt-to-income ratio, the less a bank should expect to lose. This is surprising to say the least. I'd expect higher debt-to-income ratios to correlate with more money lost per loan, but this imperfect linear model says otherwise.
 
+
+#Univariate Analysis
+###What is the structure of your dataset?
+###What is/are the main feature(s) of interest in your dataset?
+###What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
+###Did you create any new variables from existing variables in the dataset?
+###Of the features you investigated, were there any unusual distributions? Did you perform any operations on the data to tidy, adjust, or change the form of the data? If so, why did you do this?
+
+#Bivariate Analysis
+###Talk about some of the relationships you observed in this part of the investigation. How did the feature(s) of interest vary with other features in the dataset?
+###Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
+###What was the strongest relationship you found?
+
+#Multivariate Analysis
+###Talk about some of the relationships you observed in this part of the investigation. Were there features that strengthened each other in terms of looking at your feature(s) of interest?
+###Were there any interesting or surprising interactions between features?
+###OPTIONAL: Did you create any models with your dataset? Discuss the strengths and limitations of your model.
+

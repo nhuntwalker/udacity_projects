@@ -523,20 +523,68 @@ Not bad! Not bad at all! Now, how do I interpret this in the context of the orig
 - The higher the debt-to-income ratio, the less a bank should expect to lose. This is surprising to say the least. I'd expect higher debt-to-income ratios to correlate with more money lost per loan, but this imperfect linear model says otherwise.
 
 
-#Univariate Analysis
+##Univariate Analysis
 ###What is the structure of your dataset?
-###What is/are the main feature(s) of interest in your dataset?
-###What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
-###Did you create any new variables from existing variables in the dataset?
-###Of the features you investigated, were there any unusual distributions? Did you perform any operations on the data to tidy, adjust, or change the form of the data? If so, why did you do this?
+The prosper data set contains 113,937 loans, each with 81 characteristics. Most characteristics are continuous, though a few are qualitative attributes:
+- **CreditGrade:** AA (best), A, B, C, D, E (worst), HR (high risk), NC (no credit)
+- **Term:** 12, 36, 60
+- **LoanStatus:** Completed, Current, Past Due (1-15 days), Defaulted, Chargedoff, Past Due (16-30 days), Cancelled, Past Due (61-90 days), Past Due (31-60 days), Past Due (91-120 days), FinalPaymentInProgress, Past Due (>120 days)
+- **ProsperRating (numeric):** 0, 1, 2, 3, 4, 5, 6, 7 
+- **ProsperRating (alpha):** AA, A, B, C, D, E, HR
+- **ProsperScore:** 1 (worst), 2, 3, 4, 5, 6, 7, 8, 9, 10 (best)
+- **ListingCategory:** 0 (N/A), 1 (Debt Consolidation), 2 (Home Improvement), 3 (Business), 4 (Personal Loan), 5 (Student Use), 6 (Auto), 7 (Other), 8 (Baby&Adoption), 9 (Boat), 10 (Cosmetic Procedure), 11 (Engagement Ring), 12 (Green Loans), 13 (Household Expenses), 14 (Large Purchases), 15 (Medical/Dental), 16 (Motorcycle), 17 (RV), 18 (Taxes), 19 (Vacation), 20 (Wedding Loans)
+- **BorrowerState:** Two letter abbreviations for every state
+- **Occupation:** 68 different occupations
+- **EmploymentStatus:** Self-employed, Employed, Not available, Full-time, Other, Not employed, Part-time, Retired
+- **IsBorrowerHomeowner:** Boolean
+- **CurrentlyInGroup:** Boolean
+- **IncomeVerifiable:** Boolean
 
-#Bivariate Analysis
+#####Other Observations:
+-Most loans have 3-year terms (77%), while another sizeable fraction have 5-year terms (21.5%).
+-Most loans are currently in payment or completed. A significant portion however have been Charged-off (10.5%), and a smaller portion have gone into default (4.4%).
+-Loans aren't given below $1,000, and the largest loan in the data set is $35,000. Most loans are smaller loans, shown by how the median ($6,500) is below the mean ($8,337).
+-The state with the largest number of loans (by far) is California, with 14,717 loans. The next largest is Texas, with 6,842 loans.
+-The overwhelming majority of loans (51.2%) were for debt consolidation
+-The average borrower APR is 0.218
+-Interestingly enough, there isn't one credit grade dominating the borrower population. The largest fraction have an average grade of about C, but there's a pretty even smattering from A through E. The biggest differences are that AA rated borrowers make up the smallest sample, while HR rated borrowers are around the same level as AA rated borrowers.
+-The median debt-to-income ratio for borrowers is 0.22. The debt-to-income ratio is notably skewed to not just below 1, but well below 0.5.
+-It's noted above, but there are no loans in this set from between November 2008 and April 2009. Coincident with the financial crisis, and even in April 2009 there's only a small spike in loans before going dead again for about 2 months.
+-The split between borrowers that are and aren't homeowners is pretty even. Homeowners outnumber non-owners by about 1000, which isn't much considering it's a difference betwen 57,478 and 56,459.
+
+###What is/are the main feature(s) of interest in your dataset?
+The main features of the data set are LenderYield, LoanOriginalAmount, and LP_NetPrincipalLoss. Above I used other characteristics of loans to try to predict LP_NetPrincipalLoss on loans. It wasn't half bad!
+
+###What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
+I'd initially thought that CreditScoreMean, EmploymentStatusDuration, IsBorrowerHomeowner, OpenCreditLines, InquiriesLast6Months, CurrentDelinquencies, AmountDelinquent, AvailableBankcardCredit, StatedMonthlyIncome, and DebtToIncomeRatio were all important when considering whether a loan would end up with a net loss, due to several facts and suggestions gleaned from investigations into personal credit. However, it ended up being that only the Loan Original Amount, the homeowner status, the last 6 months of credit inquiries, and the debt to income ratio were significant (as far as an inherently-flawed linear model was concerned).
+
+###Did you create any new variables from existing variables in the dataset?
+Quite a few actually. Any variable with date information I broke apart into columns containing the day, the month, the year, and the date as a decimal of the year using `strptime` and `strftime`.
+
+I created a variable called LoanOriginalAmount.buckets, containing 5 ranges of dollar amounts within which a loan could reside. It was helpful for looking at some distributions with respect to the loan amount range. 
+
+Lastly, I created a variable for the mean credit score, based on the upper and lower limits of credit scores for each borrower. Its purpose was so that I could pin down roughly which credit scores correspond to which loan/borrower characteristics, instead of having to interpret from a range.
+
+###Of the features you investigated, were there any unusual distributions? Did you perform any operations on the data to tidy, adjust, or change the form of the data? If so, why did you do this?
+The only unusual distributions that I took note of involved the debt-to-income ratios and the mean credit scores. It's noted in the variable definitions file that the debt-to-income ratio metric caps at 10.01, regardless of how high the actual ratio might be. That produced slight anomalies in my distribution, and I ended up focusing mostly on debt-to-income ratios below 1.
+
+The mean credit scores were odd in that the distribution went down to 9.5 even though credit scores shouldn't really be below about 360. For my model analysis I ended up just using only credit scores that were above 250 and not "NA".
+
+Additionally, specifically for my linear model, I made sure every loan considered had a principal loss > 0, had some employment status duration (since it was a part of my initial variable set), open credit lines, inquiries in the last 6 months, some delinquent amount, some bankcard credit, some debt to income ratio, and some close date (to ensure that the loan was finished and not just late in payment). Basically I wanted to make sure that every variable considered for my model had a value that could be used to train the model.
+
+##Bivariate Analysis
 ###Talk about some of the relationships you observed in this part of the investigation. How did the feature(s) of interest vary with other features in the dataset?
 ###Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
 ###What was the strongest relationship you found?
 
-#Multivariate Analysis
+##Multivariate Analysis
 ###Talk about some of the relationships you observed in this part of the investigation. Were there features that strengthened each other in terms of looking at your feature(s) of interest?
 ###Were there any interesting or surprising interactions between features?
 ###OPTIONAL: Did you create any models with your dataset? Discuss the strengths and limitations of your model.
 
+##Final Plots and Summary
+###Plot One
+###Plot Two
+###Plot Three
+
+##Reflection

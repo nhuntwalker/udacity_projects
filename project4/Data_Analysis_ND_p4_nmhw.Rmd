@@ -31,6 +31,7 @@ Some things to know about the data set before moving forward:
 - https://stat.ethz.ch/R-manual/R-devel/library/base/html/strptime.html
 - http://stackoverflow.com/questions/9852832/r-not-in-subset
 - https://cran.r-project.org/web/packages/texreg/vignettes/v55i08.pdf
+
 ---
 
 There are five columns that contain date information. These are:
@@ -98,6 +99,10 @@ prosper <- split_to_columns(prosper, 28, first_recorded_credit_set)
 prosper <- split_to_columns(prosper, 65, loan_orig_date_set)
 ```
 
+Let's make the credit score a little easier to work with by putting that average into our dataframe
+```{r}
+prosper$CreditScoreMean = (prosper$CreditScoreRangeUpper + prosper$CreditScoreRangeLower)/2
+```
 
 First Plots: Histograms of potentially interesting things
 ```{r}
@@ -197,6 +202,26 @@ ggplot(data=subset(prosper, !is.na(LoanOriginalAmount) & (EmploymentStatus != ""
   xlab("Listing Creation Date") +
   scale_x_continuous(breaks=seq(2005, 2015))
 ```
+
+Curious about the Loan Principal vs the Stated Monthly Income
+```{r}
+ggplot(data=prosper, aes(x=StatedMonthlyIncome, y=LoanOriginalAmount)) + 
+  geom_point(position="jitter", alpha=0.2) +
+  ylab("Loan Principal") +
+  xlab("Stated Monthly Income") +
+  xlim(0, 2.5E4)
+```
+
+Hmm... what about vs the mean credit score
+```{r}
+ggplot(data=prosper, aes(x=CreditScoreMean, y=LoanOriginalAmount)) + 
+  geom_point(position="jitter", alpha=0.2) +
+  xlab("Mean Credit Score") +
+  ylab("Loan Principal") +
+  xlim(400, 900)
+```
+
+
 
 
 Onto other things. There's a variable for the percent of the listing funded. I suspect there may be a correlation between the PercentFunded and the amount asked for.
@@ -307,7 +332,7 @@ ggplot(data=prosper, aes(x=LoanOriginationDate_decimal, y=LenderYield)) +
   ylab("Lender Yield Rate") +
   scale_x_continuous(breaks=seq(2005, 2014, 1))
 ```
-What this tells me is that no matter what, lenders have almost always made money on a loan. It's also effectively telling me that the loan yield rate doesn't depend much on time. Additionally, while the vast majority of loans are for 36 months, terms don't seem to matter as much in whether or not there will be appreciable yield (although short term loans have a yield cap below 0.3). Interesting how lending effectively came to a stop between the end of 2008 and mid 2009. The financial crisis really shut things down.
+What this tells me is that no matter what, lenders have almost always made money on a loan. It's also effectively telling me that the lender yield rate doesn't depend much on time. Additionally, while the vast majority of loans are for 36 months, terms don't seem to matter as much in whether or not there will be appreciable yield (although short term loans have a yield cap below 0.3). Interesting how lending effectively came to a stop between the end of 2008 and mid 2009. The financial crisis really shut things down.
 
 I'm curious about these parameters involving "investments made by friends". Let's do histograms and time-series stuff.
 ```{r}
@@ -356,6 +381,33 @@ ggpairs(prosper, columns=interesting_columns, axisLabels="internal")
 ```
 Not much of interest here. 
 
+Another thing, let's look at LenderYield with respect to the borrower rate. A simple relationship.
+```{r}
+ggplot(data=prosper, aes(x=BorrowerRate, y=LenderYield)) + geom_point() +
+  xlab("Borrower Rate") +
+  ylab("Lender Yield")
+```
+And it comes out as expected. The higher the borrower rate, the higher the lender yield. 
+
+What else influences lender yield?
+```{r}
+ggplot(data=prosper, aes(x=IsBorrowerHomeowner, y=LenderYield)) + geom_boxplot() +
+  xlab("Homeowner Status") +
+  ylab("Lender Yield")
+```
+Hmm, now that's interesting. There's a slightly higher median yield from borrowers that DON'T own homes. I wonder why that is? 
+
+I wonder if loan term length matters.
+```{r}
+ggplot(data=prosper, aes(x=IsBorrowerHomeowner, y=LenderYield)) + geom_boxplot() +
+  xlab("Homeowner Status") +
+  ylab("Lender Yield") +
+  facet_wrap(~Term)
+```
+No matter the term length, those who don't own homes provide a larger Lender Yield!
+
+
+
 Let's check on one more thing that just came to mind: Debt/Income ratio vs avg credit rating, colored by loan amount
 ```{r}
 bw = 20
@@ -382,11 +434,6 @@ ggplot(data=subset(prosper, !is.na(DebtToIncomeRatio) & !is.na(CreditScoreRangeU
   facet_wrap(~LoanOriginalAmount.buckets)
 ```
 Apparently, keeping your debt-to-income ratio beneath 0.4 and a credit score > 620 is a great way to qualify for a loan of any type.
-
-Let's make the credit score a little easier to work with by putting that average into our dataframe
-```{r}
-prosper$CreditScoreMean = (prosper$CreditScoreRangeUpper + prosper$CreditScoreRangeLower)/2
-```
 
 
 ## Predicting Goodness of Borrower
@@ -574,7 +621,24 @@ Additionally, specifically for my linear model, I made sure every loan considere
 
 ##Bivariate Analysis
 ####Talk about some of the relationships you observed in this part of the investigation. How did the feature(s) of interest vary with other features in the dataset?
+One interesting thing is that the estimated loss rate on loans had effectively little correlation with the actual loss rate. This could be a couple things. One may be that I'm just misinterpreting the Estimated Loss The variable is described as "Estimated loss is the estimated principal loss on charge-offs." I calculated the actual loss rate as `LP_NetPrincipalLoss / LoanOriginalAmount`, or in other words, the principal remaining uncollected after any recoveries divided by the original principal of the loan. It may not be a full 1-to-1 correlation between what Prosper refers to as a loss rate, but there should be some correlation if their estimated loss rate is based on real data. The correlation coefficient from `with(prosper, cor.test(LP_NetPrincipalLoss/LoanOriginalAmount, EstimatedLoss))` 
+produces a coefficient of 0.210. Even smaller when only considering loans that posted an actual loss (0.084).
+
+On the other hand, the amount lost correlated pretty well with the loan principal, which is to some degree expected. The higher the loan, the more that can be lost. However, it's interesting to note that for loans of higher principals, it happens more often that *if* there is a loss, then larger fractions of the loan are likely to be lost. This is illustrated pretty well in the following diagram:
+```{r}
+loss_bin = 500
+ggplot(data=subset(prosper, LP_NetPrincipalLoss > 0), aes(x=round(LoanOriginalAmount / loss_bin) * loss_bin, y = LP_NetPrincipalLoss/LoanOriginalAmount)) + geom_point(alpha=0.1, position="jitter") +
+  xlab("Loan Principal ($)") +
+  ylab("Net Principal Loss Fraction") +
+  geom_line(stat="summary", color="red", fun.y=mean, size=1)
+```
+Interestingly enough, the "mean" line in red says that no matter what the loan principal, on average there's not much difference in the fraction lost (considering the scatter). However the density of points suggest differently.
+
+Lastly, Loan Principal vs Mean Credit Score. Now it seems as if **any** credit score can get a small loan. However, to get the highest loans you need at least a credit score of 600. Oddly enough, borrowers with the highest credit scores don't borrow the most. They borrow at about the same level of those with low credit scores. 
+
 ####Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
+The debt-to-income ratio vs mean credit score.
+
 ####What was the strongest relationship you found?
 
 ##Multivariate Analysis

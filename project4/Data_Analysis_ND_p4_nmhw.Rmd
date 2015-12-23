@@ -634,10 +634,25 @@ ggplot(data=subset(prosper, LP_NetPrincipalLoss > 0), aes(x=round(LoanOriginalAm
 ```
 Interestingly enough, the "mean" line in red says that no matter what the loan principal, on average there's not much difference in the fraction lost (considering the scatter). However the density of points suggest differently.
 
-Lastly, Loan Principal vs Mean Credit Score. Now it seems as if **any** credit score can get a small loan. However, to get the highest loans you need at least a credit score of 600. Oddly enough, borrowers with the highest credit scores don't borrow the most. They borrow at about the same level of those with low credit scores. 
+Lastly, Loan Principal vs Mean Credit Score. Now it seems as if **any** credit score can get a small loan. However, to get the highest loans you need at least a credit score of 600. Oddly enough, borrowers with the highest credit scores ($\ge800$) don't borrow the most. They borrow at about the same level of those with low credit scores ($\le660$). 
 
 ####Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
 The debt-to-income ratio vs mean credit score.
+```{r}
+prosper_sub <- subset(prosper, (CreditScoreMean > 300))
+
+ggplot(data=prosper_sub, aes(y=DebtToIncomeRatio, x=CreditScoreMean)) +
+  geom_point(position='jitter', alpha=0.1)
+```
+
+
+The mean Credit Score vs Listing Category
+
+```{r}
+prosper_sub <- subset(prosper, (CreditScoreMean > 300) & (ListingCategory..numeric. != 0))
+
+ggplot(data=prosper_sub, aes(x=factor(ListingCategory..numeric.), y=CreditScoreMean)) + geom_boxplot()
+```
 
 ####What was the strongest relationship you found?
 

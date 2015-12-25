@@ -29,6 +29,8 @@ Some things to know about the data set before moving forward:
 - https://stat.ethz.ch/R-manual/R-devel/library/base/html/strptime.html
 - http://stackoverflow.com/questions/9852832/r-not-in-subset
 - https://cran.r-project.org/web/packages/texreg/vignettes/v55i08.pdf
+- http://www.cookbook-r.com/Graphs/Bar_and_line_graphs_(ggplot2)/
+- http://docs.ggplot2.org/0.9.3.1/facet_wrap.html
 
 ##Formatting the Data and Adding Variables
 
@@ -374,7 +376,9 @@ Hmm. I have an idea of how this plays out with respect to loan amount but I want
 ```{r}
 prosper$LoanOriginalAmount.buckets <- cut(prosper$LoanOriginalAmount, 
                                           quantile(prosper$LoanOriginalAmount,
-                                                   probs=c(0, .2, .4, .6, .8, 1.)))
+                                                   probs=c(0, .2, .4, .6, .8, 1.)),
+                                          labels = c("$1,000-3,000", "$3,000-5,000",
+                                                     "$5,000-8,500", "$8,500-15,000"))
 ```
 
 Now revisit those investors
@@ -662,7 +666,7 @@ Lastly, Loan Principal vs Mean Credit Score. Now it seems as if **any** credit s
 
 ####Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
 I found the relationship between the debt-to-income ratio and mean credit score to be somewhat interesting. Notably, the debt-to-income ratio seems to reach its highest in the middle of the mean Credit Score distribution. This is more of personal interest than intrinsic interest, as I'd expected the higher debt-to-income ratios to come with the lowest credit scores. Upon further thought though it makes sense. Borrowers with bad credit would only be permitted to borrow if their debt-to-income ratio is low. It'd be silly for a bank to lend money to someone shown to be bad with credit (low credit score) who also is already under a mountain of debt. On the other end, those with high credit would rarely have a high debt-to-income ratio.
-```{r}
+```{r echo=FALSE}
 prosper_sub <- subset(prosper, (CreditScoreMean > 300))
 
 ggplot(data=prosper_sub, aes(y=DebtToIncomeRatio, x=CreditScoreMean)) +
@@ -720,31 +724,48 @@ A major weakness however is that this model is not at all based on any solid fin
 ggplot(data=subset(prosper, !(EmploymentStatus %in% c("", "Not available"))), aes(x=EmploymentStatus)) +
   geom_bar(aes(fill=factor(Term))) +
   xlab("Employment Status") +
-  scale_y_log10()
+  ylab("Count") +
+  scale_y_log10(breaks=c(1E2, 1E4, 1E6, 1E8, 1E10, 1E12)) +
+  scale_fill_hue(name="Term (yrs)") +
+  ggtitle("Employment Statuses of Loan Borrowers")
 ```
-#####Description:
+
+####Description:
 The distribution of employment statuses across borrowers, split by the term length of the loans they borrow.
 
 ####Plot Two
 ```{r echo=FALSE}
+prosper$reorder_income_range <- factor(prosper$IncomeRange, 
+                                 levels=c("$0","$1-24,999","$25,000-49,999","$50,000-74,999",
+                                          "$75,000-99,999","$100,000+", "Not displayed"))
 ggplot(data=subset(prosper, !(IncomeRange %in% c("$0", "Not displayed"))), aes(x=IsBorrowerHomeowner, y=LenderYield)) + geom_boxplot() +
   xlab("Homeowner Status") +
-  ylab("Lender Yield") +
-  facet_wrap(~IncomeRange)
+  ylab("Lender Yield Rate (%)") +
+  facet_wrap(~reorder_income_range) +
+  ggtitle("Lender Yield Rate vs Homeowner Status for Different Income Ranges")
 ```
-#####Description:
+
+####Description:
 Box plots of the lender yield vs homeowner status, split by income range.
 
 ####Plot Three
 ```{r echo=FALSE}
 bw = 20
+# prosper$rename_loan_buckets <- factor(prosper$LoanOriginalAmount.buckets,
+#                                       levels=c("$1,000-3,000", "$3,000-5,000",
+#                                                "$5,000-8,500", "$8,500-15,000",
+#                                                "$15,000-35,000", "NA"))
 ggplot(data=subset(prosper, !is.na(DebtToIncomeRatio) & !is.na(CreditScoreRangeUpper) & !is.na(CreditScoreRangeLower) & (CreditScoreRangeLower > 0) & (CreditScoreRangeUpper > 0) & (DebtToIncomeRatio < 1.25)), 
-       aes(x=round((CreditScoreRangeUpper + CreditScoreRangeLower)/2 / bw) * bw, y=DebtToIncomeRatio)) +
-  geom_point(position="jitter", alpha=0.2) +
+       aes(x=round(CreditScoreMean / bw) * bw, y=DebtToIncomeRatio)) +
+  geom_point(position="jitter", alpha=0.05) +
   geom_line(stat="summary", color="green", fun.y=mean) +
+  scale_y_continuous(breaks=c(0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2)) +
+  xlab("Mean Credit Score") +
+  ylab("Debt-to-Income Ratio") +
   facet_wrap(~LoanOriginalAmount.buckets)
 ```
-#####Description:
+
+####Description:
 Scatter plots of the debt-to-income ratio of the borrower vs mean credit score, split by Loan Original Amount. Overplotted is the average debt-to-income ratio for each bin of average credit score, with bin width of 20.
 
 

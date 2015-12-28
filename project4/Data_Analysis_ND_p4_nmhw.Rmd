@@ -12,9 +12,8 @@ setwd("/Users/Nick/Documents/udacity/projects/project4/")
 
 
 And now we load the data. Note that the column descriptions can be found [here](./Prosper Loan Data - Variable Definitions.xlsx)
-```{r warning=FALSE, message=FALSE}
+```{r warning=FALSE, message=FALSE, result=FALSE}
 prosper <- read.csv("prosperLoanData.csv")
-names(prosper)
 ```
 
 
@@ -378,6 +377,16 @@ ggplot(data=prosper, aes(x=LoanOriginationDate_decimal, y=LenderYield)) +
 
 What this tells me is that no matter what, lenders have almost always made money on a loan. It's also effectively telling me that the lender yield rate doesn't depend much on time. Additionally, while the vast majority of loans are for 36 months, terms don't seem to matter as much in whether or not there will be appreciable yield (although short term loans have a yield cap below 0.3). Interesting how lending effectively came to a stop between the end of 2008 and mid 2009. The financial crisis really shut things down.
 
+```{r}
+ggplot(data=prosper, aes(x=LoanOriginationDate_decimal, y=LenderYield * LoanOriginalAmount)) +
+  geom_point(alpha=0.2) +
+  xlab("Loan Origination Date") +
+  ylab("Lender Yield ($)") +
+  scale_x_continuous(breaks=seq(2005, 2014, 1))
+```
+
+The yield rate isn't really enough to tell you how much was actually MADE on the loan. Here we see the lender yield amount plotted over time, telling a somewhat different story. Lender yield reaches a height *just* before lending stops. After, it takes 4 years to begin to approach that level again. Amazing.
+
 I'm curious about these parameters involving "investments made by friends". Let's do histograms and time-series stuff.
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
@@ -489,7 +498,16 @@ ggplot(data=subset(prosper, !(IncomeRange %in% c("$0", "Not displayed"))), aes(x
   facet_wrap(~IncomeRange)
 ```
 
-Now that is interesting. Lender yield tends to be higher for borrowers that are not employed. And specifically, it bucks the trend that non-homeowning borrowers provide a generally higher yield than homeowning borrowers.
+Now that is interesting. Lender yield rates tend to be higher for borrowers that are not employed. And specifically, it bucks the trend that non-homeowning borrowers provide a generally higher yield than homeowning borrowers. What about the total yield?
+
+```{r}
+ggplot(data=subset(prosper, !(IncomeRange %in% c("$0", "Not displayed"))), aes(x=IsBorrowerHomeowner, y=LenderYield * LoanOriginalAmount)) + geom_boxplot() +
+  xlab("Homeowner Status") +
+  ylab("Lender Yield Amount ($)") +
+  facet_wrap(~IncomeRange)
+```
+
+Now this is more of what I expected, though the differences between homeowners and non-owners wasn't as drastic as I'd expected. Here we just see that the overall yield increases as the household income increases, despite that the yield rate decreases with ownership.
 
 Let's check on one more thing that just came to mind: Debt/Income ratio vs avg credit rating, colored by loan amount
 
@@ -825,15 +843,13 @@ It's interesting to note that while the biggest loans are largely only available
 
 
 ##Reflection
-Fix these later
-<strong>Basic Description</strong>: 
-Well-sized data set with many characteristics, though few of which are useful for studying borrower behavior. The set begins in 2005 and follows borrowers from Prosper through early 2014.
+The Prosper Loans data set contains characteristics for almost 114,000 loans. The set begins in 2005 and follows those who have borrowed from Prosper through early 2014. Before looking at any of the data, I scrolled through the 81 different characteristics outlined in [the variable definitions document](https://docs.google.com/spreadsheets/d/1gDyi_L4UvIrLTEC6Wri5nbaMmkGmLQBk-Yx3z0XDEtI/edit#gid=0). I noted that several variables were dated, so I created new variables for each splitting these dates in to years, months, days, and a decimal date. I wanted to be able to call on these if I wanted to look at a characteristic over time and allow myself to use an actual quantitative time parameter. I later used one of those decimal dates to see the frequency at which loans were issued between 2005 and 2014. I also created a variable for the midpoint between the minimum and maximum credit scores for each borrower. There was a consistent difference between the upper and lower limits of 19, but I still figured getting a number somewhere in between was better than using either of them. Another variable created a little later on in my analysis was LoanOriginalAmount.buckets, to give proper titles to different ranges of loan amounts. It was very useful for splitting loans into different value brackets for further analysis.
 
-<strong>Difficulties</strong>:
-Finding meaningful characteristics to explore without dumping a ton of time into an N-by-N plot with `ggpairs`. Even using just 6 categories was a slog for my machine.
+After creating the appropriate variables, I started stepping through exploring various characteristics one-by-one, many of them split by the term length of the loan. After getting a cursory feel for some individual characteristics of interest, I started looking at relationships between variables. I did this through a combination of multivariate plots (scatter plots mostly), and correlation tests with `cor.test`. After striking on a few relationships that I found interesting, I started thinking in terms of borrower behavior. Specifically, I wanted to know if the data can tell me whether how much a lender can expect to lose on a loan. I ended up with a linear model that was halfway decent at predicting loan loss, though it was only trained on a very small fraction of the overall set.
 
-<strong>Successes</strong>:
-Time series data!
+It was somewhat difficult to find meaningful characteristics to explore without dumping a ton of time into an N-by-N plot with `ggpairs`. Even using just 6 categories was a slog for my machine; 81 was asking for trouble I didn't want. Some of the characeristics that I had hoped would yield interesting fruit (e.g. PercentFunded, LenderYield, and LoanOriginalAmount vs Listing Creation Date) ended up not doing so.
 
-<strong>Ideas and Improvements</strong>: 
-Ethnicity data beyond simply the state of borrower. Maybe also education level.
+Even though there were some difficulties, there were notable successes as well! For one, time series data yielded some interesting results. Specifically, I found it interesting how lending reflects the economy over time, showing a distinct period where loaning was a no-go during the financial crisis last decade. I was also able to see how lending behavior changed depending on conditions of the borrower, like credit scores, homeowner status, income and employment. These factored heavily into my initial assumptions when I finally created my linear model.
+
+What I've done here isn't by any means a fully-comprehensive analysis. 
+For one, I could look into a model predicting income ranges to expect from potential borrowers. I could see what the daily, monthly, and annual yield was from loans, split by term length. With a set so abundant in characteristics, analysis could go on forever. The data is also not as fleshed out as I'd like it to be in order to see more interesting relationships. For example, we have data on the state of origin of the borrower which could provide insight into cultural borrowing trends. However we could get a more complete picture if we actually had ethnicity information. Similarly, we have some not-so-clean employment information, but highest level of education could also tell a lot about borrowers, and provide valuable information for future lending practices with regard to where desired yield may lie. And of course we could do more with data that's up to date with loans from 2015.

@@ -853,7 +853,8 @@ find the residuals, and plot up some stuff.
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
 estimated_losses <- predict(m5, newdata = prosper_test, interval="prediction",
                            level = 0.95)
-prosper_test$residual_loss <- estimated_losses[, 1] - prosper_test$LP_NetPrincipalLoss
+prosper_test$residual_loss <- estimated_losses[, 1] -
+  prosper_test$LP_NetPrincipalLoss
 ```
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
@@ -880,11 +881,12 @@ saying I'm pretty close with my estimations. That mean is definitely affected
 by the few outliers, as it exists well outside of my 3rd quartile. Let's 
 histogram it up.
 
-```{r echo=FALSE}
+```{r echo=FALSE, warning=FALSE, message=FALSE}
 ggplot(data=prosper_test, aes(x=residual_loss/LP_NetPrincipalLoss)) + 
   geom_histogram(binwidth=0.1) +
-  xlim(-1, 10) +
-  facet_wrap(~ LoanOriginalAmount.buckets)
+  xlim(-0.5, 2) +
+  facet_wrap(~ LoanOriginalAmount.buckets) +
+  scale_y_log10(breaks=c(1, 3, 10, 30, 100, 300))
 ```
 
 Last bits for this model. I want to check that these are consistent regardless
@@ -987,7 +989,8 @@ The main features of the data set are:
 Above I used other characteristics of loans to try to predict
 LP_NetPrincipalLoss on loans. It wasn't half bad!
 
-####What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
+####What other features in the dataset do you think will help support your 
+####investigation into your feature(s) of interest?
 I'd initially thought that CreditScoreMean, EmploymentStatusDuration,
 IsBorrowerHomeowner, OpenCreditLines, InquiriesLast6Months, 
 CurrentDelinquencies, AmountDelinquent, AvailableBankcardCredit, 
@@ -1048,13 +1051,15 @@ correlation between what Prosper refers to as a loss rate, but there should be
 some correlation if their estimated loss rate is based on real data. The 
 correlation coefficient from 
 `with(prosper, cor.test(LP_NetPrincipalLoss/LoanOriginalAmount, EstimatedLoss))` 
-produces a coefficient of 0.210. Even smaller when only considering loans that posted an actual loss (0.084).
+produces a coefficient of 0.210. Even smaller when only considering loans that
+posted an actual loss (0.084).
 
 On the other hand, the amount lost correlated pretty well with the loan 
 principal, which is to some degree expected. The higher the loan, the more that
 can be lost. However, it's interesting to note that for loans of higher 
 principals, it happens more often that *if* there is a loss, then larger 
-fractions of the loan are likely to be lost. This is illustrated pretty well in the following diagram:
+fractions of the loan are likely to be lost. This is illustrated pretty well in
+the following diagram:
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 loss_bin = 500
@@ -1119,7 +1124,11 @@ ggplot(data=prosper_sub,
   scale_y_continuous(breaks=seq(500, 900, 20))
 ```
 
-One last one was between the total credit lines in the past 7 years vs the stated monthly income. It makes sense when I think about it, but apparently the more money you make, the more credit lines you're likely to have opened. In fact, making more money seems to imply a lower limit to the amount of credit lines open!
+One last one was between the total credit lines in the past 7 years vs the 
+stated monthly income. It makes sense when I think about it, but apparently the
+more money you make, the more credit lines you're likely to have opened. In 
+fact, making more money seems to imply a lower limit to the amount of credit 
+lines open!
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 binsize = 1E3

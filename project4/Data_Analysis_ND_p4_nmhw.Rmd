@@ -3,7 +3,7 @@
 
 Before we do anything, let's call the requisite libraries and go to the right 
 working directory.
-```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 library(ggplot2) # for making any plots
 library(gridExtra) #for making multi-panel plots
 library(GGally)
@@ -14,7 +14,7 @@ setwd("/Users/Nick/Documents/udacity/projects/project4/")
 
 And now we load the data. Note that the column descriptions 
 can be found [here](./Prosper Loan Data - Variable Definitions.xlsx)
-```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 prosper <- read.csv("prosperLoanData.csv")
 ```
 
@@ -51,7 +51,7 @@ Let's make them datetime objects.
 Write a function that takes in a dataframe and a column of choice, and adds
 columns to the dataframe that splits the datetime object. I want the year, the
 month (maybe cyclical?), the day, as well as the date as a decimal of the year.
-```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 split_to_columns <- function(df, input_colnum, output_colname_assoc_arr) {
   dates <- strptime(df[, input_colnum], format="%Y-%m-%d %H:%M:%S")
   df[output_colname_assoc_arr["year"]] <- as.numeric(strftime(dates,
@@ -68,7 +68,7 @@ split_to_columns <- function(df, input_colnum, output_colname_assoc_arr) {
 }
 ```
 
-```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 #column 3
 listing_creation_date_set <- c()
 listing_creation_date_set["year"] <- "ListingCreationDate_year"
@@ -113,7 +113,7 @@ prosper <- split_to_columns(prosper, 65, loan_orig_date_set)
 
 Let's make the credit score a little easier to work with by putting that 
 average of credit scores directly into our dataframe
-```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 prosper$CreditScoreMean <- (prosper$CreditScoreRangeUpper +
                              prosper$CreditScoreRangeLower)/2
 ```
@@ -126,13 +126,15 @@ ggplot(data=subset(prosper, !is.na(Term)),
        aes(x=ListingCreationDate_decimal)) + 
   geom_histogram(binwidth=1/12) + 
   xlab("Listing Creation Date") +
-  scale_x_continuous(breaks=seq(2005, 2015)) +
+  scale_x_continuous(breaks=seq(2006, 2014)) +
+  scale_y_continuous() +
   facet_wrap(~Term, ncol = 1, scales="free_y")
 
 #Borrower APR split by term length
 ggplot(data=subset(prosper, !is.na(Term)), aes(x=BorrowerAPR)) +
   geom_histogram() +
   xlab("Borrower APR (%)") +
+  xlim(0.05, 0.35) +
   facet_wrap(~Term, ncol = 1, scales="free_y")
 
 ggplot(data=subset(prosper, !is.na(Term) & !is.na(ProsperRating..Alpha.)),
@@ -157,20 +159,24 @@ make a histogram of that too and see what the real distribution is.
 
 This is the stated monthly income **at the time of borrowing**
 
-```{r echo=FALSE}
+```{r echo=FALSE, warning=FALSE, message=FALSE}
 ggplot(data=prosper, aes(x=StatedMonthlyIncome)) +
   geom_histogram(binwidth=1000) +
-  xlim(0, 50000) +
+  # xlim(0, 15000) +
+  scale_x_continuous(limits=c(0, 15000), breaks=seq(0, 15000, 2500)) +
   xlab("Stated Monthly Income ($)") +
   facet_wrap(~Term, ncol=1, scales="free_y")
+quantile(prosper$StatedMonthlyIncome, probs=c(0, 0.01, 0.99, 1))
 ```
 
 What about the original loan amount?
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
 ggplot(data=prosper, aes(x=LoanOriginalAmount)) +
-  geom_histogram() +
+  geom_histogram(binwidth=1000) +
+  scale_x_continuous(breaks=seq(0, 25000, 5000), limits=c(0, 25000)) +
   xlab("Loan Principal ($)")
+quantile(prosper$LoanOriginalAmount, probs=c(0, 0.01, 0.99, 1))
 ```
 
 Hmm.... Is there some correlation between loan amount and 
@@ -180,32 +186,67 @@ with(prosper, cor.test(LoanOriginalAmount, StatedMonthlyIncome))
 ```
 
 Correlation coefficient = 0.2012595. Quite lower than what 
-I was expecting. Let's see what the scatterplot says
+I was expecting. Let's see the correlation coefficients split by loan term
 
-```{r echo=FALSE}
-ggplot(data=subset(prosper, StatedMonthlyIncome < 10000),
-       aes(y=LoanOriginalAmount, x=StatedMonthlyIncome)) +
-  geom_point(position="jitter", alpha=0.2, aes(color=factor(Term))) +
-  xlab("Stated Monthly Income ($)") +
-  ylab("Loan Principal ($)") 
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+splitter_list <- c()
+corr_list <- c()
+  
+for (category in unique(prosper$Term)) {
+    df_test <- subset(prosper, Term == category)
+    splitter_list <- append(splitter_list, category)
+    corr_list <- append(corr_list, with(df_test, cor(LoanOriginalAmount, 
+                                                     StatedMonthlyIncome)))
+}
+  
+corr_df <- data.frame(splitter_list, corr_list)
+
+ggplot(data=corr_df, aes(x=splitter_list, y=corr_list)) +
+  geom_bar(stat="identity", width=20) +
+  scale_x_discrete(breaks=c(12,36,60)) +
+  xlab("Loan Term Length") +
+  ylab("Correlation btwn Income and Principal")
+# ggplot(data=subset(prosper, StatedMonthlyIncome < 10000),
+#        aes(y=LoanOriginalAmount, x=StatedMonthlyIncome)) +
+#   geom_point(position="jitter", alpha=0.2, aes(color=factor(Term))) +
+#   xlab("Stated Monthly Income ($)") +
+#   ylab("Loan Principal ($)") 
 ```
 
-I wonder if there's any visible difference when coloring on 
+So there appears to be **some** correlation based on term length, though still
+somewhat low. I wonder if there's any visible difference when splitting on 
 Borrower APR instead of just term.
 
 ```{r echo=FALSE}
-ggplot(data=subset(prosper, (StatedMonthlyIncome < 10000) & 
-                     (EmploymentStatus != "")),
-       aes(y=LoanOriginalAmount, x=StatedMonthlyIncome)) +
-  geom_point(position="jitter", alpha=0.2, 
-             aes(color=factor(EmploymentStatus))) +
-  xlab("Stated Monthly Income ($)") +
-  ylab("Loan Principal ($)") 
+splitter_list <- c()
+corr_list <- c()
+  
+
+for (category in unique(prosper$EmploymentStatus)) {
+    df_test <- subset(prosper, EmploymentStatus == category)
+    splitter_list <- append(splitter_list, category)
+    corr_list <- append(corr_list, with(df_test, cor(LoanOriginalAmount, 
+                                                     StatedMonthlyIncome)))
+}
+  
+corr_df <- data.frame(splitter_list, corr_list)
+
+ggplot(data=corr_df, aes(x=splitter_list, y=corr_list)) +
+  geom_point(size=5) +
+  xlab("Employment Status") +
+  ylab("Correlation btwn Income and Principal")
+
+# ggplot(data=subset(prosper, (StatedMonthlyIncome < 10000) & 
+#                      (EmploymentStatus != "")),
+#        aes(y=LoanOriginalAmount, x=StatedMonthlyIncome)) +
+#   geom_point(position="jitter", alpha=0.2, 
+#              aes(color=factor(EmploymentStatus))) +
+#   xlab("Stated Monthly Income ($)") +
+#   ylab("Loan Principal ($)") 
 ```
 
-Somewhat. Smaller loans for those employed part time. A ton of borrowers 
-are employed or self-employed though. Let's see the employment statuses of
-borrowers more explicitly.
+Somewhat. About the same level of of correlation at maximum, and still low
+overall. Let's see the employment statuses of borrowers more explicitly.
 
 ```{r echo=FALSE}
 ggplot(data=subset(prosper, !(EmploymentStatus %in% c("", "Not available"))),
@@ -217,7 +258,7 @@ ggplot(data=subset(prosper, !(EmploymentStatus %in% c("", "Not available"))),
 
 Let's see them in their own element
 
-```{r echo=FALSE}
+```{r echo=FALSE, fig.width=10, fig.height=5}
 ggplot(data=subset(prosper, (StatedMonthlyIncome < 10000) &
                      (StatedMonthlyIncome > 0) & 
                      !(EmploymentStatus %in% c("", "Not available"))),
@@ -225,6 +266,7 @@ ggplot(data=subset(prosper, (StatedMonthlyIncome < 10000) &
   geom_point(position="jitter", alpha=0.2) +
   facet_wrap(~EmploymentStatus) +
   xlab("Stated Monthly Income ($)") +
+  stat_smooth(method='lm') +
   ylab("Loan Principal ($)") 
 ```
 
@@ -234,7 +276,7 @@ This could be an interesting thing to look at. Is there a split on Term?
 ggplot(data=subset(prosper, 
                    !(EmploymentStatus %in% c("", "Not available"))),
        aes(x=EmploymentStatus)) +
-  geom_bar(aes(fill=factor(Term))) +
+  geom_bar(aes(fill=factor(Term)), position="dodge") +
   xlab("Employment Status") +
   scale_y_log10()
 ```
@@ -244,32 +286,28 @@ Oooh this is money right here. No pun intended.
 Here's another question then, is there a significant difference between the
 ways different employment statuses borrow over time?
 
-```{r echo=FALSE}
+```{r echo=FALSE, fig.width=10, fig.height=4}
 ggplot(data=subset(prosper, 
                    !is.na(LoanOriginalAmount) & (EmploymentStatus != "")),
-       aes(x=ListingCreationDate_decimal, y=LoanOriginalAmount)) + 
-  geom_point(aes(color=factor(EmploymentStatus)), 
-             alpha=0.1, position="jitter") + 
-  xlab("Listing Creation Date") +
-  scale_x_continuous(breaks=seq(2005, 2015)) +
-  scale_y_sqrt()
+       aes(x=factor(ListingCreationDate_year), y=LoanOriginalAmount)) + 
+  geom_boxplot(aes(color=factor(EmploymentStatus)), alpha=0.3) +
+  scale_y_continuous(breaks=seq(0, 35000, 5000)) +
+  xlab("Listing Creation Date")
 ```
 
 The employed and full-time borrowers wash out everyone else, so let's see 
 what it looks like without them.
 
-```{r echo=FALSE}
+```{r echo=FALSE, fig.width=10, fig.height=4}
 ggplot(data=subset(prosper, 
                    !is.na(LoanOriginalAmount) & 
                      (EmploymentStatus != "") & 
                      (EmploymentStatus != "Not available") & 
                      (EmploymentStatus != "Employed") & 
                      (EmploymentStatus != "Full-time")),
-       aes(x=ListingCreationDate_decimal, y=LoanOriginalAmount)) + 
-  geom_point(aes(color=factor(EmploymentStatus)), 
-             alpha=0.2, position="jitter") + 
-  xlab("Listing Creation Date") +
-  scale_x_continuous(breaks=seq(2005, 2015))
+       aes(x=factor(ListingCreationDate_year), y=LoanOriginalAmount)) + 
+  geom_boxplot(aes(color=factor(EmploymentStatus)), alpha=0.3) + 
+  xlab("Listing Creation Date")
 ```
 
 Curious about the Loan Principal vs the Stated Monthly Income
@@ -467,11 +505,10 @@ ggplot(data=prosper, aes(x=LenderYield)) +
   xlab("Lender Yield Rate") +
   scale_y_sqrt()
 
-ggplot(data=prosper, aes(x=LoanOriginationDate_decimal, y=LenderYield)) +
-  geom_point(alpha=0.2) +
+ggplot(data=prosper, aes(x=factor(LoanOriginationDate_year), y=LenderYield)) +
+  geom_boxplot() +
   xlab("Loan Origination Date") +
-  ylab("Lender Yield Rate") +
-  scale_x_continuous(breaks=seq(2005, 2014, 1))
+  ylab("Lender Yield Rate")
 ```
 
 What this tells me is that no matter what, lenders have almost always made
@@ -482,14 +519,14 @@ will be appreciable yield (although short term loans have a yield cap below
 0.3). Interesting how lending effectively came to a stop between the end of 
 2008 and mid 2009. The financial crisis really shut things down.
 
-```{r}
+```{r echo=FALSE, message=FALSE}
 ggplot(data=prosper, 
-       aes(x=LoanOriginationDate_decimal, 
+       aes(x=factor(LoanOriginationDate_year), 
            y=LenderYield * LoanOriginalAmount)) +
-  geom_point(alpha=0.2) +
+  geom_boxplot() +
   xlab("Loan Origination Date") +
-  ylab("Lender Yield ($)") +
-  scale_x_continuous(breaks=seq(2005, 2014, 1))
+  ylab("Lender Yield ($)")
+  # scale_x_continuous(breaks=seq(2005, 2014, 1))
 ```
 
 The yield rate isn't really enough to tell you how much was actually MADE on 
@@ -501,15 +538,25 @@ I'm curious about these parameters involving "investments made by friends".
 Let's do histograms and time-series stuff.
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
-plt1 = ggplot(data=prosper, aes(x=InvestmentFromFriendsCount)) + 
-  geom_histogram() +
+plt1 <- ggplot(data=subset(prosper, InvestmentFromFriendsCount != 0), 
+              aes(x=InvestmentFromFriendsCount)) + 
+  geom_histogram(binwidth=1.0) +
+  scale_y_log10() +
+  scale_x_continuous(breaks=seq(1, 10), limits=c(1, 10)) +
   xlab("Number of Friends Investing")
-plt2 = ggplot(data=prosper, aes(x=InvestmentFromFriendsAmount)) + 
+
+plt2 <- ggplot(data=subset(prosper, InvestmentFromFriendsAmount != 0), 
+              aes(x=InvestmentFromFriendsAmount)) + 
   geom_histogram() +
-  xlab("Amount Friends have Invested ($)")
-plt3 = ggplot(data=prosper, aes(x=Investors)) + 
+  xlab("Amount Friends have Invested ($)") +
+  scale_y_log10() +
+  xlim(1, 15000)
+
+plt3 <- ggplot(data=subset(prosper, Investors != 0), aes(x=Investors)) + 
   geom_histogram() +
-  xlab("Number of Investors Funding the Loan")
+  xlab("Number of Investors Funding the Loan") +
+  scale_x_continuous(limits=c(1, 300)) +
+  scale_y_continuous(limits=c(0, 7000))
 
 grid.arrange(plt1, plt2, plt3, ncol=1)
 ```
@@ -546,7 +593,8 @@ bw = 25
 ggplot(data=prosper, aes(x=Investors)) + 
   geom_histogram(aes(fill=LoanOriginalAmount.buckets)) +
   xlab("Number of Investors Funding the Loan") +
-  scale_x_sqrt(breaks=c(15, 170, 500, 1000))
+  scale_x_sqrt(breaks=c(15, 170, 500, 1000), limits=c(1, 650)) +
+  ylim(0, 7000)
 ```
 
 I don't really...see this one going anywhere. I've stepped through a 
@@ -630,7 +678,7 @@ that are not employed. And specifically, it bucks the trend that
 non-homeowning borrowers provide a generally higher yield than homeowning
 borrowers. What about the total yield?
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(data=subset(prosper, 
                    !(IncomeRange %in% c("$0", "Not displayed"))),
        aes(x=IsBorrowerHomeowner, y=LenderYield * LoanOriginalAmount)) +
@@ -857,110 +905,229 @@ m5 <- update(m4, ~ . + DebtToIncomeRatio)
 
 mtable(m5)
 ```
-Not bad! Not bad at all! Now, how do I interpret this in the context of the original idea of a borrower's goodness?
+Not bad! Not bad at all! Now, how do I interpret this in the context of the 
+original idea of a borrower's goodness?
 
-- The higher the loan amount, the more the bank should expect to lose on it. The more a borrower asks for, the higher the risk.
-- Owning a home correlates with less money lost on a loan. One can find good buyers amongst homeowners.
-- The more inquiries that have been made into a borrower's credit history, the higher the risk.
-- The higher the debt-to-income ratio, the less a bank should expect to lose. This is surprising to say the least. I'd expect higher debt-to-income ratios to correlate with more money lost per loan, but this imperfect linear model says otherwise.
+- The higher the loan amount, the more the bank should expect to lose on it. 
+    The more a borrower asks for, the higher the risk.
+- Owning a home correlates with less money lost on a loan. One can find good 
+    buyers amongst homeowners.
+- The more inquiries that have been made into a borrower's credit history, the 
+    higher the risk.
+- The higher the debt-to-income ratio, the less a bank should expect to lose. 
+    This is surprising to say the least. I'd expect higher debt-to-income 
+    ratios to correlate with more money lost per loan, but this imperfect 
+    linear model says otherwise.
 
 
 ##Univariate Analysis
 ###What is the structure of your dataset?
-The prosper data set contains 113,937 loans, each with 81 characteristics. Most characteristics are continuous, though a few are qualitative attributes:
+The prosper data set contains 113,937 loans, each with 81 characteristics. 
+Most characteristics are continuous, though a few are qualitative attributes:
 
-- **CreditGrade:** AA (best), A, B, C, D, E (worst), HR (high risk), NC (no credit)
+- **CreditGrade:** AA (best), A, B, C, D, E (worst), HR (high risk), 
+    NC (no credit)
 - **Term:** 12, 36, 60
-- **LoanStatus:** Completed, Current, Past Due (1-15 days), Defaulted, Chargedoff, Past Due (16-30 days), Cancelled, Past Due (61-90 days), Past Due (31-60 days), Past Due (91-120 days), FinalPaymentInProgress, Past Due (>120 days)
+- **LoanStatus:** Completed, Current, Past Due (1-15 days), Defaulted, 
+    Chargedoff, Past Due (16-30 days), Cancelled, Past Due (61-90 days), 
+    Past Due (31-60 days), Past Due (91-120 days), FinalPaymentInProgress, 
+    Past Due (>120 days)
 - **ProsperRating (numeric):** 0, 1, 2, 3, 4, 5, 6, 7 
 - **ProsperRating (alpha):** AA, A, B, C, D, E, HR
 - **ProsperScore:** 1 (worst), 2, 3, 4, 5, 6, 7, 8, 9, 10 (best)
-- **ListingCategory:** 0 (N/A), 1 (Debt Consolidation), 2 (Home Improvement), 3 (Business), 4 (Personal Loan), 5 (Student Use), 6 (Auto), 7 (Other), 8 (Baby&Adoption), 9 (Boat), 10 (Cosmetic Procedure), 11 (Engagement Ring), 12 (Green Loans), 13 (Household Expenses), 14 (Large Purchases), 15 (Medical/Dental), 16 (Motorcycle), 17 (RV), 18 (Taxes), 19 (Vacation), 20 (Wedding Loans)
+- **ListingCategory:** 0 (N/A), 1 (Debt Consolidation), 2 (Home Improvement), 
+    3 (Business), 4 (Personal Loan), 5 (Student Use), 6 (Auto), 7 (Other), 
+    8 (Baby&Adoption), 9 (Boat), 10 (Cosmetic Procedure), 11 (Engagement Ring),
+    12 (Green Loans), 13 (Household Expenses), 14 (Large Purchases), 
+    15 (Medical/Dental), 16 (Motorcycle), 17 (RV), 18 (Taxes), 19 (Vacation),
+    20 (Wedding Loans)
 - **BorrowerState:** Two letter abbreviations for every state
 - **Occupation:** 68 different occupations
-- **EmploymentStatus:** Self-employed, Employed, Not available, Full-time, Other, Not employed, Part-time, Retired
+- **EmploymentStatus:** Self-employed, Employed, Not available, Full-time,
+    Other, Not employed, Part-time, Retired
 - **IsBorrowerHomeowner:** Boolean
 - **CurrentlyInGroup:** Boolean
 - **IncomeVerifiable:** Boolean
 
 #####Other Observations:
 
-- Most loans have 3-year terms (77%), while another sizeable fraction have 5-year terms (21.5%).
-- Most loans are currently in payment or completed. A significant portion however have been Charged-off (10.5%), and a smaller portion have gone into default (4.4%).
-- Loans aren't given below $1,000, and the largest loan in the data set is $35,000. Most loans are smaller loans, shown by how the median ($6,500) is below the mean ($8,337).
-- The state with the largest number of loans (by far) is California, with 14,717 loans. The next largest is Texas, with 6,842 loans.
+- Most loans have 3-year terms (77%), while another sizeable fraction have     
+    5-year terms (21.5%).
+- Most loans are currently in payment or completed. A significant portion 
+    however have been Charged-off (10.5%), and a smaller portion have gone 
+    into default (4.4%).
+- Loans aren't given below $1,000, and the largest loan in the data set is 
+    $35,000. Most loans are smaller loans, shown by how the median ($6,500) is
+    below the mean ($8,337).
+- The state with the largest number of loans (by far) is California, with 
+    14,717 loans. The next largest is Texas, with 6,842 loans.
 - The overwhelming majority of loans (51.2%) were for debt consolidation
 - The average borrower APR is 0.218
-- Interestingly enough, there isn't one credit grade dominating the borrower population. The largest fraction have an average grade of about C, but there's a pretty even smattering from A through E. The biggest differences are that AA rated borrowers make up the smallest sample, while HR rated borrowers are around the same level as AA rated borrowers.
-- The median debt-to-income ratio for borrowers is 0.22. The debt-to-income ratio is notably skewed to not just below 1, but well below 0.5.
-- It's noted above, but there are no loans in this set from between November 2008 and April 2009. Coincident with the financial crisis, and even in April 2009 there's only a small spike in loans before going dead again for about 2 months.
-- The split between borrowers that are and aren't homeowners is pretty even. Homeowners outnumber non-owners by about 1000, which isn't much considering it's a difference betwen 57,478 and 56,459.
+- Interestingly enough, there isn't one credit grade dominating the borrower 
+    population. The largest fraction have an average grade of about C, but 
+    there's a pretty even smattering from A through E. The biggest differences 
+    are that AA rated borrowers make up the smallest sample, while HR rated 
+    borrowers are around the same level as AA rated borrowers.
+- The median debt-to-income ratio for borrowers is 0.22. The debt-to-income 
+    ratio is notably skewed to not just below 1, but well below 0.5.
+- It's noted above, but there are no loans in this set from between November 
+    2008 and April 2009. Coincident with the financial crisis, and even in 
+    April 2009 there's only a small spike in loans before going dead again 
+    for about 2 months.
+- The split between borrowers that are and aren't homeowners is pretty even. 
+    Homeowners outnumber non-owners by about 1000, which isn't much 
+    considering it's a difference betwen 57,478 and 56,459.
 
 ####What is/are the main feature(s) of interest in your dataset?
-The main features of the data set are LenderYield, LoanOriginalAmount, and LP_NetPrincipalLoss. Above I used other characteristics of loans to try to predict LP_NetPrincipalLoss on loans. It wasn't half bad!
+The main features of the data set are:
+- LenderYield
+- LoanOriginalAmount
+- LP_NetPrincipalLoss
+
+Above I used other characteristics of loans to try to predict
+LP_NetPrincipalLoss on loans. It wasn't half bad!
 
 ####What other features in the dataset do you think will help support your investigation into your feature(s) of interest?
-I'd initially thought that CreditScoreMean, EmploymentStatusDuration, IsBorrowerHomeowner, OpenCreditLines, InquiriesLast6Months, CurrentDelinquencies, AmountDelinquent, AvailableBankcardCredit, StatedMonthlyIncome, and DebtToIncomeRatio were all important when considering whether a loan would end up with a net loss, due to several facts and suggestions gleaned from investigations into personal credit. However, it ended up being that only the Loan Original Amount, the homeowner status, the last 6 months of credit inquiries, and the debt to income ratio were significant (as far as an inherently-flawed linear model was concerned).
+I'd initially thought that CreditScoreMean, EmploymentStatusDuration,
+IsBorrowerHomeowner, OpenCreditLines, InquiriesLast6Months, 
+CurrentDelinquencies, AmountDelinquent, AvailableBankcardCredit, 
+StatedMonthlyIncome, and DebtToIncomeRatio were all important when considering 
+whether a loan would end up with a net loss, due to several facts and 
+suggestions gleaned from investigations into personal credit. However, it ended
+up being that only the Loan Original Amount, the homeowner status, the last 6 
+months of credit inquiries, and the debt to income ratio were significant (as 
+far as an inherently-flawed linear model was concerned).
 
 ####Did you create any new variables from existing variables in the dataset?
-Quite a few actually. Any variable with date information I broke apart into columns containing the day, the month, the year, and the date as a decimal of the year using `strptime` and `strftime`.
+Quite a few actually. Any variable with date information I broke apart into 
+columns containing the day, the month, the year, and the date as a decimal of 
+the year using `strptime` and `strftime`.
 
-I created a variable called LoanOriginalAmount.buckets, containing 5 ranges of dollar amounts within which a loan could reside. It was helpful for looking at some distributions with respect to the loan amount range. 
+I created a variable called LoanOriginalAmount.buckets, containing 5 ranges of 
+dollar amounts within which a loan could reside. It was helpful for looking at 
+some distributions with respect to the loan amount range. 
 
-Lastly, I created a variable for the mean credit score, based on the upper and lower limits of credit scores for each borrower. Its purpose was so that I could pin down roughly which credit scores correspond to which loan/borrower characteristics, instead of having to interpret from a range.
+Lastly, I created a variable for the mean credit score, based on the upper and 
+lower limits of credit scores for each borrower. Its purpose was so that I 
+could pin down roughly which credit scores correspond to which loan/borrower 
+characteristics, instead of having to interpret from a range.
 
-####Of the features you investigated, were there any unusual distributions? Did you perform any operations on the data to tidy, adjust, or change the form of the data? If so, why did you do this?
-The only unusual distributions that I took note of involved the debt-to-income ratios and the mean credit scores. It's noted in the variable definitions file that the debt-to-income ratio metric caps at 10.01, regardless of how high the actual ratio might be. That produced slight anomalies in my distribution, and I ended up focusing mostly on debt-to-income ratios below 1.
+####Of the features you investigated, were there any unusual distributions? Did
+####you perform any operations on the data to tidy, adjust, or change the form 
+####of the data? If so, why did you do this?
+The only unusual distributions that I took note of involved the debt-to-income 
+ratios and the mean credit scores. It's noted in the variable definitions file 
+that the debt-to-income ratio metric caps at 10.01, regardless of how high the 
+actual ratio might be. That produced slight anomalies in my distribution, and I
+ended up focusing mostly on debt-to-income ratios below 1.
 
-The mean credit scores were odd in that the distribution went down to 9.5 even though credit scores shouldn't really be below about 360. For my model analysis I ended up just using only credit scores that were above 250 and not "NA".
+The mean credit scores were odd in that the distribution went down to 9.5 even 
+though credit scores shouldn't really be below about 360. For my model analysis
+I ended up just using only credit scores that were above 250 and not "NA".
 
-Additionally, specifically for my linear model, I made sure every loan considered had a principal loss > 0, had some employment status duration (since it was a part of my initial variable set), open credit lines, inquiries in the last 6 months, some delinquent amount, some bankcard credit, some debt to income ratio, and some close date (to ensure that the loan was finished and not just late in payment). Basically I wanted to make sure that every variable considered for my model had a value that could be used to train the model.
+Additionally, specifically for my linear model, I made sure every loan 
+considered had a principal loss > 0, had some employment status duration (since
+it was a part of my initial variable set), open credit lines, inquiries in the 
+last 6 months, some delinquent amount, some bankcard credit, some debt to 
+income ratio, and some close date (to ensure that the loan was finished and not
+just late in payment). Basically I wanted to make sure that every variable 
+considered for my model had a value that could be used to train the model.
 
 ##Bivariate Analysis
-####Talk about some of the relationships you observed in this part of the investigation. How did the feature(s) of interest vary with other features in the dataset?
-One interesting thing is that the estimated loss rate on loans had effectively little correlation with the actual loss rate. This could be a couple things. One may be that I'm just misinterpreting the Estimated Loss The variable is described as "Estimated loss is the estimated principal loss on charge-offs." I calculated the actual loss rate as `LP_NetPrincipalLoss / LoanOriginalAmount`, or in other words, the principal remaining uncollected after any recoveries divided by the original principal of the loan. It may not be a full 1-to-1 correlation between what Prosper refers to as a loss rate, but there should be some correlation if their estimated loss rate is based on real data. The correlation coefficient from `with(prosper, cor.test(LP_NetPrincipalLoss/LoanOriginalAmount, EstimatedLoss))` 
+####Talk about some of the relationships you observed in this part of the
+####investigation. How did the feature(s) of interest vary with other features 
+####in the dataset?
+One interesting thing is that the estimated loss rate on loans had effectively 
+little correlation with the actual loss rate. This could be a couple things. 
+One may be that I'm just misinterpreting the Estimated Loss The variable is 
+described as "Estimated loss is the estimated principal loss on charge-offs." I
+calculated the actual loss rate as `LP_NetPrincipalLoss / LoanOriginalAmount`, 
+or in other words, the principal remaining uncollected after any recoveries 
+divided by the original principal of the loan. It may not be a full 1-to-1 
+correlation between what Prosper refers to as a loss rate, but there should be 
+some correlation if their estimated loss rate is based on real data. The 
+correlation coefficient from 
+`with(prosper, cor.test(LP_NetPrincipalLoss/LoanOriginalAmount, EstimatedLoss))` 
 produces a coefficient of 0.210. Even smaller when only considering loans that posted an actual loss (0.084).
 
-On the other hand, the amount lost correlated pretty well with the loan principal, which is to some degree expected. The higher the loan, the more that can be lost. However, it's interesting to note that for loans of higher principals, it happens more often that *if* there is a loss, then larger fractions of the loan are likely to be lost. This is illustrated pretty well in the following diagram:
+On the other hand, the amount lost correlated pretty well with the loan 
+principal, which is to some degree expected. The higher the loan, the more that
+can be lost. However, it's interesting to note that for loans of higher 
+principals, it happens more often that *if* there is a loss, then larger 
+fractions of the loan are likely to be lost. This is illustrated pretty well in the following diagram:
 
-```{r echo=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 loss_bin = 500
-ggplot(data=subset(prosper, LP_NetPrincipalLoss > 0), aes(x=round(LoanOriginalAmount / loss_bin) * loss_bin, y = LP_NetPrincipalLoss/LoanOriginalAmount)) + geom_point(alpha=0.1, position="jitter") +
+ggplot(data=subset(prosper, LP_NetPrincipalLoss > 0), 
+       aes(x=round(LoanOriginalAmount / loss_bin) * loss_bin, 
+           y = LP_NetPrincipalLoss/LoanOriginalAmount)) + 
+  geom_point(alpha=0.1, position="jitter") +
   xlab("Loan Principal ($)") +
   ylab("Net Principal Loss Fraction") +
   geom_line(stat="summary", color="red", fun.y=mean, size=1)
 ```
 
-Interestingly enough, the "mean" line in red says that no matter what the loan principal, on average there's not much difference in the fraction lost (considering the scatter). However the density of points suggest differently.
+Interestingly enough, the "mean" line in red says that no matter what the loan 
+principal, on average there's not much difference in the fraction lost 
+(considering the scatter). However the density of points suggest differently.
 
-Lastly, Loan Principal vs Mean Credit Score. Now it seems as if **any** credit score can get a small loan. However, to get the highest loans you need at least a credit score of 600. Oddly enough, borrowers with the highest credit scores ($\ge800$) don't borrow the most. They borrow at about the same level of those with low credit scores ($\le660$). 
+Lastly, Loan Principal vs Mean Credit Score. Now it seems as if **any** credit 
+score can get a small loan. However, to get the highest loans you need at least
+a credit score of 600. Oddly enough, borrowers with the highest credit scores
+($\ge800$) don't borrow the most. They borrow at about the same level of those 
+with low credit scores ($\le660$). 
 
-####Did you observe any interesting relationships between the other features (not the main feature(s) of interest)?
-I found the relationship between the debt-to-income ratio and mean credit score to be somewhat interesting. Notably, the debt-to-income ratio seems to reach its highest in the middle of the mean Credit Score distribution. This is more of personal interest than intrinsic interest, as I'd expected the higher debt-to-income ratios to come with the lowest credit scores. Upon further thought though it makes sense. Borrowers with bad credit would only be permitted to borrow if their debt-to-income ratio is low. It'd be silly for a bank to lend money to someone shown to be bad with credit (low credit score) who also is already under a mountain of debt. On the other end, those with high credit would rarely have a high debt-to-income ratio.
+####Did you observe any interesting relationships between the other features 
+####(not the main feature(s) of interest)?
+I found the relationship between the debt-to-income ratio and mean credit score
+to be somewhat interesting. Notably, the debt-to-income ratio seems to reach 
+its highest in the middle of the mean Credit Score distribution. This is more 
+of personal interest than intrinsic interest, as I'd expected the higher 
+debt-to-income ratios to come with the lowest credit scores. Upon further 
+thought though it makes sense. Borrowers with bad credit would only be 
+permitted to borrow if their debt-to-income ratio is low. It'd be silly for a 
+bank to lend money to someone shown to be bad with credit (low credit score) 
+who also is already under a mountain of debt. On the other end, those with high
+credit would rarely have a high debt-to-income ratio.
 
-```{r echo=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 prosper_sub <- subset(prosper, (CreditScoreMean > 300))
 
 ggplot(data=prosper_sub, aes(y=DebtToIncomeRatio, x=CreditScoreMean)) +
   geom_point(position='jitter', alpha=0.05) + ylim(0, 1.0)
 ```
 
-The other relationship between non-main features I found interesting was mean credit score vs the listing category. For categories 4 and 5 (Personal Loan and Student Use), the credit score median and range are lower than all others. I suppose that necessity allows for those with lower credit to borrow. In contrast, a frivolous expense like a boat has a higher median credit score, as well as a much higher 75th percentile. All others are more or less in the same ranges for median and quartiles. What this means to me as a potential borrower is that if I want to get loan money from a bank, a credit score of about 710 is a good place to start.
+The other relationship between non-main features I found interesting was mean 
+credit score vs the listing category. For categories 4 and 5 (Personal Loan and
+Student Use), the credit score median and range are lower than all others. I 
+suppose that necessity allows for those with lower credit to borrow. In 
+contrast, a frivolous expense like a boat has a higher median credit score, as 
+well as a much higher 75th percentile. All others are more or less in the same 
+ranges for median and quartiles. What this means to me as a potential borrower 
+is that if I want to get loan money from a bank, a credit score of about 710 is
+a good place to start.
 
-```{r echo=FALSE, results='hide'}
-prosper_sub <- subset(prosper, (CreditScoreMean > 300) & (ListingCategory..numeric. != 0))
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+prosper_sub <- subset(prosper, 
+                      (CreditScoreMean > 300) & 
+                        (ListingCategory..numeric. != 0))
 
-ggplot(data=prosper_sub, aes(x=factor(ListingCategory..numeric.), y=CreditScoreMean)) +
+ggplot(data=prosper_sub, 
+       aes(x=factor(ListingCategory..numeric.), 
+           y=CreditScoreMean)) +
   geom_boxplot() + 
   scale_y_continuous(breaks=seq(500, 900, 20))
 ```
 
 One last one was between the total credit lines in the past 7 years vs the stated monthly income. It makes sense when I think about it, but apparently the more money you make, the more credit lines you're likely to have opened. In fact, making more money seems to imply a lower limit to the amount of credit lines open!
 
-```{r echo=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 binsize = 1E3
-ggplot(data=subset(prosper, !is.na(StatedMonthlyIncome) & (StatedMonthlyIncome > 0) & (StatedMonthlyIncome < 2.5E4)),
-       aes(x=round(StatedMonthlyIncome / binsize) * binsize, y=TotalCreditLinespast7years)) +
+ggplot(data=subset(prosper, !is.na(StatedMonthlyIncome) &
+                     (StatedMonthlyIncome > 0) &
+                     (StatedMonthlyIncome < 2.5E4)),
+       aes(x=round(StatedMonthlyIncome / binsize) * binsize,
+           y=TotalCreditLinespast7years)) +
   geom_point(alpha=0.01, position='jitter') + 
   geom_line(stat="summary", color="red", fun.y=median, size=1) +
   scale_y_continuous(breaks=seq(0, 100, 10), limits=(c(0, 100))) +
@@ -968,52 +1135,138 @@ ggplot(data=subset(prosper, !is.na(StatedMonthlyIncome) & (StatedMonthlyIncome >
 ```
 
 ####What was the strongest relationship you found?
-Objectively the strongest relationship that I saw for this data set was between the net principal loss and the loan principal amount. However, this isn't really a fair assessment of strong relationships within this data set as these are not independent variables. Simply, the more money borrowed, the more money that can be lost when the loan isn't paid. It would've been interesting to see if the loss RATE scaled with loan principal, but when I looked at that it showed an effectively flat distribution in loss rates across all loan principals.
+Objectively the strongest relationship that I saw for this data set was between
+the net principal loss and the loan principal amount. However, this isn't 
+really a fair assessment of strong relationships within this data set as these 
+are not independent variables. Simply, the more money borrowed, the more money 
+that can be lost when the loan isn't paid. It would've been interesting to see 
+if the loss RATE scaled with loan principal, but when I looked at that it 
+showed an effectively flat distribution in loss rates across all loan 
+principals.
 
-The strongest relationship I found between seemingly unrelated components was the Total Credit Lines in the Past 7 Years vs Stated Monthly Income. The more money you make, the more credit you take.
+The strongest relationship I found between seemingly unrelated components was 
+the Total Credit Lines in the Past 7 Years vs Stated Monthly Income. The more 
+money you make, the more credit you take.
 
 ##Multivariate Analysis
-####Talk about some of the relationships you observed in this part of the investigation. Were there features that strengthened each other in terms of looking at your feature(s) of interest?
-Lender Yield is generally higher for higher-risk loans, depending of course on borrower APR. Flattened to 2D it's easy to see that Lender Yield is higher for higher APR. That's the point of having a higher APR. 
+####Talk about some of the relationships you observed in this part of the 
+####investigation. Were there features that strengthened each other in terms of
+####looking at your feature(s) of interest?
+Lender Yield is generally higher for higher-risk loans, depending of course on 
+borrower APR. Flattened to 2D it's easy to see that Lender Yield is higher for 
+higher APR. That's the point of having a higher APR. 
 
-A higher monthly income generally affords for higher loans, but being listed as employed (either as generally employed or full-time) shows a much wider field of potential in borrowed loans. Holding monthly income constant, more employment means you can borrow far larger loans, and self-employment isn't quite as trusted.
+A higher monthly income generally affords for higher loans, but being listed as
+employed (either as generally employed or full-time) shows a much wider field 
+of potential in borrowed loans. Holding monthly income constant, more 
+employment means you can borrow far larger loans, and self-employment isn't 
+quite as trusted.
 
 ####Were there any interesting or surprising interactions between features?
-Lender Yield vs homeowner status, split by income range. What surprised me were a couple things. The first was that unemployed homeowners provided a larger yield rate on their loans than unemployed people without homes. It's surprising because it bucks the trend seen in every other income range. The other thing that was surprising was that lender yield rate was higher for those who made the LEAST money. I'd have expected that those who made more money would provide a higher yield rate, but perhaps it's only that those who have little money to spare are given higher APRs as lenders don't trust them as much as those with higher income.
+Lender Yield vs homeowner status, split by income range. What surprised me were
+a couple things. The first was that unemployed homeowners provided a larger 
+yield rate on their loans than unemployed people without homes. It's surprising
+because it bucks the trend seen in every other income range. The other thing 
+that was surprising was that lender yield rate was higher for those who made 
+the LEAST money. I'd have expected that those who made more money would provide
+a higher yield rate, but perhaps it's only that those who have little money to 
+spare are given higher APRs as lenders don't trust them as much as those with 
+higher income.
 
-Lender Yield vs borrower APR, split by credit grade. As mentioned above, lender yield is higher for higher-risk loans. However, the split on credit grade makes lenders almost seem predatory, making their larger yield (rates) on those with a shaky credit history. Coloring by the actual loan amount makes it seem a little less predatory, with higher-risk borrowers only acquiring generally smaller loans, however these are likely loans out of necessity. It makes me wonder what sorts of holes these borrowers are digging for themselves by taking out loans with shaky credit.
+Lender Yield vs borrower APR, split by credit grade. As mentioned above, lender
+yield is higher for higher-risk loans. However, the split on credit grade makes
+lenders almost seem predatory, making their larger yield (rates) on those with 
+a shaky credit history. Coloring by the actual loan amount makes it seem a 
+little less predatory, with higher-risk borrowers only acquiring generally 
+smaller loans, however these are likely loans out of necessity. It makes me 
+wonder what sorts of holes these borrowers are digging for themselves by taking
+out loans with shaky credit.
 
 
-####OPTIONAL: Did you create any models with your dataset? Discuss the strengths and limitations of your model.
-I created a linear model to try and predict the amount that may be lost on a closed loan. The model was trained on 75% of randomly-selected data that posted a loss (without replacement) and tested on the remaining 25% posting a loss. I wanted to use this estimated loss as a proxy for borrower reliability. 
+####OPTIONAL: Did you create any models with your dataset? Discuss the 
+####strengths and limitations of your model.
+I created a linear model to try and predict the amount that may be lost on a 
+closed loan. The model was trained on 75% of randomly-selected data that posted
+a loss (without replacement) and tested on the remaining 25% posting a loss. I 
+wanted to use this estimated loss as a proxy for borrower reliability. 
 
-One strength of my model is that, based on nothing else besides the magnitudes of coefficients output by my model, it can predict principal loss pretty well, accounting for 80% of the variation in the original loan amount. A large fraction of my residuals are near zero and a fair number overestimate the loss, which in a more realistic setting would help the lending party be more conservative with who they lend to. Another strength is that the model is fairly consistent, regardless of which random 75% of my data is selected to train it.
+One strength of my model is that, based on nothing else besides the magnitudes 
+of coefficients output by my model, it can predict principal loss pretty well, 
+accounting for 80% of the variation in the original loan amount. A large 
+fraction of my residuals are near zero and a fair number overestimate the loss,
+which in a more realistic setting would help the lending party be more 
+conservative with who they lend to. Another strength is that the model is 
+fairly consistent, regardless of which random 75% of my data is selected to 
+train it.
 
-A major weakness however is that this model is not at all based on any solid financial theory. I can't use this model to back up any ideas about borrower behavior, it's just how the numbers work. Another weakness is that the model only considers loans that HAVE a loss, in addition to only considering loans that have what I considered valid measurements in the fields I was using as variables. In reality only represents about 10.7% of the total data set, so this isn't really a robust model and a potential lender would be remiss in using it to assess the actual reliability of a potential borrower. I would call it the extremely-pessimistic estimation of loss on a given loan.
+A major weakness however is that this model is not at all based on any solid 
+financial theory. I can't use this model to back up any ideas about borrower 
+behavior, it's just how the numbers work. Another weakness is that the model 
+only considers loans that HAVE a loss, in addition to only considering loans 
+that have what I considered valid measurements in the fields I was using as 
+variables. In reality only represents about 10.7% of the total data set, so 
+this isn't really a robust model and a potential lender would be remiss in 
+using it to assess the actual reliability of a potential borrower. I would call
+it the extremely-pessimistic estimation of loss on a given loan.
 
 ##Final Plots and Summary
 ####Plot One
 
-```{r echo=FALSE}
-ggplot(data=subset(prosper, !(EmploymentStatus %in% c("", "Not available"))), aes(x=EmploymentStatus)) +
-  geom_bar(aes(fill=factor(Term))) +
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(data=subset(prosper, 
+                   !(EmploymentStatus %in% c("", "Not available"))),
+       aes(x=EmploymentStatus)) +
+  geom_bar(aes(fill=factor(Term)), position="dodge") +
   xlab("Employment Status") +
   ylab("Count") +
-  scale_y_log10(breaks=c(1E2, 1E4, 1E6, 1E8, 1E10, 1E12)) +
+  scale_y_log10() + 
   scale_fill_hue(name="Term (yrs)") +
   ggtitle("Employment Statuses of Loan Borrowers")
 ```
 
 ####Description:
-The distribution of employment statuses across borrowers, split by the term length of the loans they borrow. Because the y-xis is logarithmic, it's interesting to see just how many loans are long-term. It could be that fully-employed (Employed, Full-time, and Self-employed) folks take out short term loans just to get over a hump or make a new purchase that they know they can cover in the near term with their income.
+The distribution of employment statuses across borrowers, split by the term 
+length of the loans they borrow. With the y-xis being square root-scaled, it's
+interesting to see just how many more loans are long-term. Overall...
+```{r echo=FALSE, message=FALSE, warning=FALSE, results=FALSE}
+sum(with(prosper, !(EmploymentStatus %in% c("", "Not available")) & 
+           (Term == 60))) / 
+  sum(with(prosper, !(EmploymentStatus %in% c("", "Not available"))))
+
+sum(with(prosper, !(EmploymentStatus %in% c("", "Not available")) & 
+           (Term == 36))) / 
+  sum(with(prosper, !(EmploymentStatus %in% c("", "Not available"))))
+
+sum(with(prosper, !(EmploymentStatus %in% c("", "Not available")) & 
+           (Term == 12))) / 
+  sum(with(prosper, !(EmploymentStatus %in% c("", "Not available"))))
+
+```
+- 60-month loans make up 23.08% of these loans
+- 36-month loans make up 75.40%
+- 12-month loans make up 1.52%
+
+It could be that fully-employed (Employed, Full-time, and Self-employed) 
+folks take out short term loans just to get over a hump or make a new purchase
+that they know they can cover in the near term with their income.
 
 ####Plot Two
 
-```{r echo=FALSE}
-prosper$reorder_income_range <- factor(prosper$IncomeRange, 
-                                 levels=c("$0","$1-24,999","$25,000-49,999","$50,000-74,999",
-                                          "$75,000-99,999","$100,000+", "Not displayed"))
-ggplot(data=subset(prosper, !(IncomeRange %in% c("$0", "Not displayed"))), aes(x=IsBorrowerHomeowner, y=LenderYield)) + geom_boxplot() +
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+prosper$reorder_income_range <- factor(prosper$IncomeRange,
+                                       levels=c("$0",
+                                                "$1-24,999",
+                                                "$25,000-49,999",
+                                                "$50,000-74,999",
+                                          "$75,000-99,999",
+                                          "$100,000+", 
+                                          "Not displayed"))
+ggplot(data=subset(prosper, 
+                   !(IncomeRange %in% c("$0", 
+                                        "Not displayed"))),
+       aes(x=IsBorrowerHomeowner, 
+           y=LenderYield)) + 
+  geom_boxplot() +
   xlab("Homeowner Status") +
   ylab("Lender Yield Rate (%)") +
   facet_wrap(~reorder_income_range) +
@@ -1021,42 +1274,122 @@ ggplot(data=subset(prosper, !(IncomeRange %in% c("$0", "Not displayed"))), aes(x
 ```
 
 ####Description:
-Box plots of the lender yield vs homeowner status, split by income range. The boxes show the 3rd/1st quartile plus/minus 1.5x the interquartile range of rates in the vertical lines (top/bottom). Additionally, it shows the first, second (median, thick), and third quartiles in the horizontal lines. The income ranges are based on the income of the borrower at the moment the loan was issued. 
+Box plots of the lender yield vs homeowner status, split by income range. The 
+boxes show the 3rd/1st quartile plus/minus 1.5x the interquartile range of 
+rates in the vertical lines (top/bottom). Additionally, it shows the first, 
+second (median, thick), and third quartiles in the horizontal lines. The income
+ranges are based on the income of the borrower at the moment the loan was 
+issued. 
 
-What we're seeing here is that for every income range except where income wasn't reported (the "NA" set), the lender yield rate is higher for those that don't own homes. What's more, the less the borrower makes the higher the rate of return for the lender (caused no doubt by a higher borrower APR). Interesting however that the trend of lender yield rates is so similar across 5 very different income ranges.
+What we're seeing here is that for every income range except where income 
+wasn't reported (the "NA" set), the lender yield rate is higher for those that 
+don't own homes. What's more, the less the borrower makes the higher the rate 
+of return for the lender (caused no doubt by a higher borrower APR). 
+Interesting however that the trend of lender yield rates is so similar across 5
+very different income ranges.
 
 ####Plot Three
 
-```{r echo=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 bw = 20
-# prosper$rename_loan_buckets <- factor(prosper$LoanOriginalAmount.buckets,
-#                                       levels=c("$1,000-3,000", "$3,000-5,000",
-#                                                "$5,000-8,500", "$8,500-15,000",
-#                                                "$15,000-35,000", "NA"))
-ggplot(data=subset(prosper, !is.na(DebtToIncomeRatio) & !is.na(CreditScoreRangeUpper) & !is.na(CreditScoreRangeLower) & (CreditScoreRangeLower > 0) & (CreditScoreRangeUpper > 0) & (DebtToIncomeRatio < 1.25)), 
-       aes(x=round(CreditScoreMean / bw) * bw, y=DebtToIncomeRatio)) +
+ggplot(data=subset(prosper, 
+                   !is.na(DebtToIncomeRatio) &
+                     !is.na(CreditScoreRangeUpper) &
+                     !is.na(CreditScoreRangeLower) & 
+                     (CreditScoreRangeLower > 0) & 
+                     (CreditScoreRangeUpper > 0) & 
+                     (DebtToIncomeRatio < 1.25)), 
+       aes(x=round(CreditScoreMean / bw) * bw, 
+           y=DebtToIncomeRatio)) +
   geom_point(position="jitter", alpha=0.05) +
   geom_line(stat="summary", color="green", fun.y=mean) +
   scale_y_continuous(breaks=c(0.0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2)) +
   xlab("Mean Credit Score") +
   ylab("Debt-to-Income Ratio") +
-  facet_wrap(~LoanOriginalAmount.buckets)
+  facet_wrap(~LoanOriginalAmount.buckets) +
+  ggtitle("Debt-to-Income Ratio vs Mean Credit Score for Loan Amount Ranges")
 ```
 
 ####Description:
-Scatter plots of the debt-to-income ratio of the borrower vs mean credit score, split by the original amount of each loan. Overplotted in green is the average debt-to-income ratio for each bin of average credit score, with a bin width of 20. The axis for debt-to-income ratios is heavily truncated; the maximum is 10.01 even though some debt-to-income ratios are actually higher, and I'm focusing on the bulk of the distribution, where the ratio is less than about 1.2.
+Scatter plots of the debt-to-income ratio of the borrower vs mean credit score,
+split by the original amount of each loan. Overplotted in green is the average 
+debt-to-income ratio for each bin of average credit score, with a bin width of 
+20. The axis for debt-to-income ratios is heavily truncated; the maximum is 
+10.01 even though some debt-to-income ratios are actually higher, and I'm 
+focusing on the bulk of the distribution, where the ratio is less than about 
+1.2.
 
-It's interesting to note that while the biggest loans are largely only available to those with credit scores > 600, loans of all sizes are issued for the full range of credit scores. What's universal between loan sets is that the debt-to-income ratios of borrowers is chiefly below 0.7, with the highest loans ($15,000+) falling mostly below 0.4. So, while credit scores may take on a wide range, one's debt compared to their income will be a large determinant in how much money Prosper will allow one to borrow. It's also interesting to see that having the highest credit score doesn't necessarily translate to taking out tons of credit debt. We see this in te distribution of debt-to-income ratios, which stay low at the higher credit scores; they probably maintain their credit by keeping low debt to begin with. Contrast this with the lower credit scores, where the debt to income ratios at that end are likely low because that's the only way that they could be approved for a loan.
+It's interesting to note that while the biggest loans are largely only 
+available to those with credit scores > 600, loans of all sizes are issued for 
+the full range of credit scores. What's universal between loan sets is that the
+debt-to-income ratios of borrowers is chiefly below 0.7, with the highest loans
+($15,000+) falling mostly below 0.4. So, while credit scores may take on a wide
+range, one's debt compared to their income will be a large determinant in how 
+much money Prosper will allow one to borrow. It's also interesting to see that 
+having the highest credit score doesn't necessarily translate to taking out 
+tons of credit debt. We see this in te distribution of debt-to-income ratios, 
+which stay low at the higher credit scores; they probably maintain their credit
+by keeping low debt to begin with. Contrast this with the lower credit scores, 
+where the debt to income ratios at that end are likely low because that's the 
+only way that they could be approved for a loan.
 
 
 ##Reflection
-The Prosper Loans data set contains characteristics for almost 114,000 loans. The set begins in 2005 and follows those who have borrowed from Prosper through early 2014. Before looking at any of the data, I scrolled through the 81 different characteristics outlined in [the variable definitions document](https://docs.google.com/spreadsheets/d/1gDyi_L4UvIrLTEC6Wri5nbaMmkGmLQBk-Yx3z0XDEtI/edit#gid=0). I noted that several variables were dated, so I created new variables for each splitting these dates in to years, months, days, and a decimal date. I wanted to be able to call on these if I wanted to look at a characteristic over time and allow myself to use an actual quantitative time parameter. I later used one of those decimal dates to see the frequency at which loans were issued between 2005 and 2014. I also created a variable for the midpoint between the minimum and maximum credit scores for each borrower. There was a consistent difference between the upper and lower limits of 19, but I still figured getting a number somewhere in between was better than using either of them. Another variable created a little later on in my analysis was LoanOriginalAmount.buckets, to give proper titles to different ranges of loan amounts. It was very useful for splitting loans into different value brackets for further analysis.
+The Prosper Loans data set contains characteristics for almost 114,000 loans. 
+The set begins in 2005 and follows those who have borrowed from Prosper through
+early 2014. Before looking at any of the data, I scrolled through the 81 
+different characteristics outlined in [the variable definitions document](https://docs.google.com/spreadsheets/d/1gDyi_L4UvIrLTEC6Wri5nbaMmkGmLQBk-Yx3z0XDEtI/edit#gid=0). 
+I noted that several variables were dated, so I created new variables for each 
+splitting these dates in to years, months, days, and a decimal date. I wanted 
+to be able to call on these if I wanted to look at a characteristic over time 
+and allow myself to use an actual quantitative time parameter. I later used one
+of those decimal dates to see the frequency at which loans were issued between 
+2005 and 2014. I also created a variable for the midpoint between the minimum 
+and maximum credit scores for each borrower. There was a consistent difference 
+between the upper and lower limits of 19, but I still figured getting a number 
+somewhere in between was better than using either of them. Another variable 
+created a little later on in my analysis was LoanOriginalAmount.buckets, to 
+give proper titles to different ranges of loan amounts. It was very useful for 
+splitting loans into different value brackets for further analysis.
 
-After creating the appropriate variables, I started stepping through exploring various characteristics one-by-one, many of them split by the term length of the loan. After getting a cursory feel for some individual characteristics of interest, I started looking at relationships between variables. I did this through a combination of multivariate plots (scatter plots mostly), and correlation tests with `cor.test`. After striking on a few relationships that I found interesting, I started thinking in terms of borrower behavior. Specifically, I wanted to know if the data can tell me whether how much a lender can expect to lose on a loan. I ended up with a linear model that was halfway decent at predicting loan loss, though it was only trained on a very small fraction of the overall set.
+After creating the appropriate variables, I started stepping through exploring 
+various characteristics one-by-one, many of them split by the term length of 
+the loan. After getting a cursory feel for some individual characteristics of 
+interest, I started looking at relationships between variables. I did this 
+through a combination of multivariate plots (scatter plots mostly), and 
+correlation tests with `cor.test`. After striking on a few relationships that I
+found interesting, I started thinking in terms of borrower behavior. 
+Specifically, I wanted to know if the data can tell me whether how much a 
+lender can expect to lose on a loan. I ended up with a linear model that was 
+halfway decent at predicting loan loss, though it was only trained on a very 
+small fraction of the overall set.
 
-It was somewhat difficult to find meaningful characteristics to explore without dumping a ton of time into an N-by-N plot with `ggpairs`. Even using just 6 categories was a slog for my machine; 81 was asking for trouble I didn't want. Some of the characeristics that I had hoped would yield interesting fruit (e.g. PercentFunded, LenderYield, and LoanOriginalAmount vs Listing Creation Date) ended up not doing so.
+It was somewhat difficult to find meaningful characteristics to explore without
+dumping a ton of time into an N-by-N plot with `ggpairs`. Even using just 6 
+categories was a slog for my machine; 81 was asking for trouble I didn't want. 
+Some of the characeristics that I had hoped would yield interesting fruit (e.g.
+PercentFunded, LenderYield, and LoanOriginalAmount vs Listing Creation Date) 
+ended up not doing so.
 
-Even though there were some difficulties, there were notable successes as well! For one, time series data yielded some interesting results. Specifically, I found it interesting how lending reflects the economy over time, showing a distinct period where loaning was a no-go during the financial crisis last decade. I was also able to see how lending behavior changed depending on conditions of the borrower, like credit scores, homeowner status, income and employment. These factored heavily into my initial assumptions when I finally created my linear model.
+Even though there were some difficulties, there were notable successes as well!
+For one, time series data yielded some interesting results. Specifically, I 
+found it interesting how lending reflects the economy over time, showing a 
+distinct period where loaning was a no-go during the financial crisis last 
+decade. I was also able to see how lending behavior changed depending on 
+conditions of the borrower, like credit scores, homeowner status, income and 
+employment. These factored heavily into my initial assumptions when I finally 
+created my linear model.
 
 What I've done here isn't by any means a fully-comprehensive analysis. 
-For one, I could look into a model predicting income ranges to expect from potential borrowers. I could see what the daily, monthly, and annual yield was from loans, split by term length. With a set so abundant in characteristics, analysis could go on forever. The data is also not as fleshed out as I'd like it to be in order to see more interesting relationships. For example, we have data on the state of origin of the borrower which could provide insight into cultural borrowing trends. However we could get a more complete picture if we actually had ethnicity information. Similarly, we have some not-so-clean employment information, but highest level of education could also tell a lot about borrowers, and provide valuable information for future lending practices with regard to where desired yield may lie. And of course we could do more with data that's up to date with loans from 2015.
+For one, I could look into a model predicting income ranges to expect from 
+potential borrowers. I could see what the daily, monthly, and annual yield was 
+from loans, split by term length. With a set so abundant in characteristics, 
+analysis could go on forever. The data is also not as fleshed out as I'd like 
+it to be in order to see more interesting relationships. For example, we have 
+data on the state of origin of the borrower which could provide insight into 
+cultural borrowing trends. However we could get a more complete picture if we 
+actually had ethnicity information. Similarly, we have some not-so-clean 
+employment information, but highest level of education could also tell a lot 
+about borrowers, and provide valuable information for future lending practices 
+with regard to where desired yield may lie. And of course we could do more with
+data that's up to date with loans from 2015.

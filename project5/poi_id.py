@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 ### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
 ### The first feature must be "poi".
-
 features_list = ['salary', "total_earned_cash_value", 
                 "exercised_stock_options"] # You will need to use more features
 

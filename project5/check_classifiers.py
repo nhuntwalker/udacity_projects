@@ -365,6 +365,48 @@ for ii in range(len(feats)):
  
 plot_precision_recall_param(prec, rec, feats, "max_features")
 
+# Tuning GMM
+tol_array = np.logspace(-8, -2, 100)
+prec = np.zeros(len(tol_array))
+rec = np.zeros(len(tol_array))
+
+for ii in range(len(tol_array)):
+    clf = GMM(tol=tol_array[ii], n_components=2)
+    clf.fit(x_train, y_train)
+    pred = clf.predict(x_test)
+    prec[ii] = precision_score(y_test, pred, average="binary")
+    rec[ii] = recall_score(y_test, pred, average="binary")
+
+plot_precision_recall_param(prec, rec, tol_array, "tol")
+
+
+iters = np.arange(1, 50)
+prec = np.zeros(len(iters))
+rec = np.zeros(len(iters))
+
+for ii in range(len(iters)):
+    clf = GMM(tol=5E-3, n_components=2, n_iter=iters[ii])
+    clf.fit(x_train, y_train)
+    pred = clf.predict(x_test)
+    prec[ii] = precision_score(y_test, pred, average="binary")
+    rec[ii] = recall_score(y_test, pred, average="binary")
+
+plot_precision_recall_param(prec, rec, iters, "n_iter")
+
+
+inits = np.arange(1, 50)
+prec = np.zeros(len(inits))
+rec = np.zeros(len(inits))
+
+for ii in range(len(inits)):
+    clf = GMM(tol=5E-3, n_components=2, n_init=inits[ii])
+    clf.fit(x_train, y_train)
+    pred = clf.predict(x_test)
+    prec[ii] = precision_score(y_test, pred, average="binary")
+    rec[ii] = recall_score(y_test, pred, average="binary")
+
+plot_precision_recall_param(prec, rec, inits, "n_init")''
+
 
 
 

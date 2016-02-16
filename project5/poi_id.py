@@ -2,15 +2,14 @@
 
 import sys
 import pickle
-sys.path.append("../../courses/machine-learning/ud120-projects/tools/")
+# sys.path.append("../../courses/machine-learning/ud120-projects/tools/")
+sys.path.append("../tools/")
 
 from feature_format import featureFormat, targetFeatureSplit
 from tester import dump_classifier_and_data
 
 import pandas as pd
-import pandasql as sql
 import numpy as np
-import matplotlib.pyplot as plt
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -58,28 +57,30 @@ data_df["employee"] = data_df.index
 # I expect my POI classifier will rely on at least one of these (or one of
 # the components that will contribute to one of the totals), so if all of
 # these are null, then they're not useful
-the_query = "SELECT *"
-the_query += " FROM data_df"
-the_query += " WHERE total_payments!=0 AND salary!=0 AND total_stock_value!=0"
-no_null_df = sql.sqldf(the_query, locals())
 
 # Remove some 3-sigma outliers. Salary is getting a 2-sigma cut because
 # 3-sigma doesn't remove an outlier that skews my sample.
 column_lims = {
-    "bonus" : no_null_df.bonus.quantile(0.995),
-    "salary" : no_null_df.salary.quantile(0.95),
-    "person2poi" : no_null_df.from_this_person_to_poi.quantile(0.995),
-    "longterm" : no_null_df.long_term_incentive.quantile(0.995),
-    "allstock" : no_null_df.total_stock_value.quantile(0.995)
+    "bonus" : data_df.bonus.quantile(0.995),
+    "salary" : data_df.salary.quantile(0.95),
+    "person2poi" : data_df.from_this_person_to_poi.quantile(0.995),
+    "longterm" : data_df.long_term_incentive.quantile(0.995),
+    "allstock" : data_df.total_stock_value.quantile(0.995)
 }
 
-three_sig_cut = (no_null_df.bonus < column_lims["bonus"]) & \
-    (no_null_df.salary < column_lims["salary"]) & \
-    (no_null_df.from_this_person_to_poi < column_lims["person2poi"]) & \
-    (no_null_df.long_term_incentive < column_lims["longterm"]) & \
-    (no_null_df.total_stock_value < column_lims["allstock"])
+three_sig_cut = (data_df.bonus < column_lims["bonus"]) & \
+    (data_df.salary < column_lims["salary"]) & \
+    (data_df.from_this_person_to_poi < column_lims["person2poi"]) & \
+    (data_df.long_term_incentive < column_lims["longterm"]) & \
+    (data_df.total_stock_value < column_lims["allstock"]) & \
+    (data_df.total_payments > 0)
 
-no_outliers = no_null_df[three_sig_cut]
+no_outliers = data_df[three_sig_cut]
+
+# *********************************************************************
+# *** Return to the regularly-scheduled algorithm                   ***
+# *********************************************************************
+
 
 ### Task 3: Create new feature(s)
 # I'm rescaling a few properties as the point-separation appears more clearly
@@ -101,12 +102,17 @@ no_outliers["log_expenses"] = np.log10(no_outliers.expenses + 1)
 # stocks_cash_ratio
 col = "stocks_cash_ratio"
 no_outliers[col] = no_outliers.total_stock_value / no_outliers.total_payments
+no_outliers[col] = no_outliers[col].replace(np.inf, 1E12)
 
 # total_emails, fractions_sent, fractions_received
 no_outliers["total_emails"] = no_outliers[["from_messages", 
                                            "to_messages"]].sum(axis=1)
 col = "fractions_sent"
 no_outliers[col] = no_outliers.from_messages / \
+    no_outliers.total_emails.astype(float)
+
+col = "fractions_received"
+no_outliers[col] = no_outliers.to_messages / \
     no_outliers.total_emails.astype(float)
 
 ### Store to my_data for easy export below.
@@ -122,6 +128,7 @@ for key in my_data:
 # labels, features = targetFeatureSplit(data)
 features_list = ["poi", "log_other", "stocks_cash_ratio", "fractions_sent", 
                  "log_expenses"]
+# features_list = ["poi", "log_other", "log_expenses"]
 data = featureFormat(my_data, features_list, sort_keys=True)
 labels, features = targetFeatureSplit(data)
 
@@ -132,7 +139,7 @@ labels, features = targetFeatureSplit(data)
 ### http://scikit-learn.org/stable/modules/pipeline.html
 
 def evaluate_classifiers(classifier_dict, features, labels, iters=50, 
-                         prec_avg=None, plot=False):
+                         prec_avg=None, plot=False, outfile=None):
     """
     Pass a dict of classifiers and the data that you desire to be classified.
     This function will test those classifiers against that data, each time
@@ -220,6 +227,8 @@ def evaluate_classifiers(classifier_dict, features, labels, iters=50,
         ax1.legend(fontsize=10)
         ax2.legend(fontsize=10)
         ax3.legend(fontsize=10)
+        if outfile:
+            plt.savefig(outfile)
         plt.show()
 
 # Provided to give you a starting point. Try a variety of classifiers.
@@ -227,16 +236,17 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC, LinearSVC
-from sklearn.cluster import KMeans, MeanShift
+from sklearn.cluster import KMeans
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier,\
     BaggingClassifier, ExtraTreesClassifier, GradientBoostingClassifier
 from sklearn.linear_model import RidgeClassifier
+from sklearn.mixture import GMM
 
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.cross_validation import train_test_split
 
 classifiers = {"GaussianNB" : GaussianNB(), 
-               "Decision Tree" : DecisionTreeClassifier(random_state=5),
+               "DecisionTree" : DecisionTreeClassifier(random_state=5),
                "KNearest" : KNeighborsClassifier(),
                "SVC - rbf" : SVC(kernel="rbf"),
                "LinearSVC" : LinearSVC(),
@@ -250,7 +260,7 @@ classifiers = {"GaussianNB" : GaussianNB(),
                "GradientBoostingClassifier" : GradientBoostingClassifier(),
                "RidgeClassifier" : RidgeClassifier()}
 
-evaluate_classifiers(classifiers, features, labels)
+# evaluate_classifiers(classifiers, features, labels)
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script. Check the tester.py script in the final project
 ### folder for details on the evaluation method, especially the test_classifier
@@ -262,6 +272,7 @@ evaluate_classifiers(classifiers, features, labels)
 x_train, x_test, y_train, y_test = train_test_split(features, labels, 
                                                     test_size = 0.4, 
                                                     random_state = 42)
+
 data = {"x_train" : x_train, "y_train" : y_train, "x_test" : x_test, 
         "y_test" : y_test}
 
@@ -274,6 +285,7 @@ classifiers = {"KMeans" : KMeans(n_clusters=2, n_init=50, tol=1E-8),
                "LinearSVC" : LinearSVC(C=20.0, random_state=5, 
                                     fit_intercept=False),
                "GaussianNB" : GaussianNB(),
+               "GMM" : GMM(tol=5E-3, n_components=2),
                "BaggingClassifier" : BaggingClassifier(max_samples=35, 
                                                        max_features=3, 
                                                        warm_start=True),
@@ -286,13 +298,19 @@ classifiers = {"KMeans" : KMeans(n_clusters=2, n_init=50, tol=1E-8),
                                      random_state=40, 
                                      criterion="entropy")}
 
-evaluate_classifiers(classifiers, features, labels, prec_avg="weighted", 
-                     plot=True, iters=100)
+evaluate_classifiers(classifiers, features, labels, prec_avg="binary", iters=100)
 
 ### Task 6: Dump your classifier, dataset, and features_list so anyone can
 ### check your results. You do not need to change anything below, but make sure
 ### that the version of poi_id.py that you submit can be run on its own and
 ### generates the necessary .pkl files for validating your results.
 
-clf = BaggingClassifier(max_samples=35, max_features=3, warm_start=True)
+
+clf = GradientBoostingClassifier(learning_rate=8., n_estimators=5, max_depth=11, 
+                                 min_samples_split=14, warm_start=True, 
+                                 min_samples_leaf=9, max_features=4)
+# clf = RandomForestClassifier(n_estimators=18, max_features=4,
+#                                  max_depth=8, warm_start=True,
+#                                  random_state=5)
+
 dump_classifier_and_data(clf, my_data, features_list)

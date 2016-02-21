@@ -66,61 +66,49 @@ def plot_precision_recall_param(precision, recall, param, param_name):
     ax.legend()
     plt.show()
 
-## Tuning K-Means
-iter_array = np.arange(1, 300)
-prec = np.zeros(len(iter_array))
-rec = np.zeros(len(iter_array))
+## Tuning ExtraTrees
+est_array = np.arange(1, 100)
+prec = np.zeros(len(est_array))
+rec = np.zeros(len(est_array))
 
-for ii in range(len(iter_array)):
-    clf = KMeans(n_clusters=2, max_iter = iter_array[ii])
+for ii in range(len(est_array)):
+    clf = ExtraTreesClassifier(n_estimators=est_array[ii], random_state=5)
     clf.fit(x_train, y_train)
     pred = clf.predict(x_test)
-    prec[ii] = precision_score(y_test, pred)
-    rec[ii] = recall_score(y_test, pred)
+    prec[ii] = precision_score(y_test, pred, average="binary")
+    rec[ii] = recall_score(y_test, pred, average="binary")
 
-plot_precision_recall_param(prec, rec, iter_array, "max_iter")
+plot_precision_recall_param(prec, rec, est_array, "n_estimators")
 
 
-init_array = np.arange(1, 100)
-prec = np.zeros(len(init_array))
-rec = np.zeros(len(init_array))
+clf = ExtraTreesClassifier(criterion="entropy", n_estimators=32, random_state=5)
+clf.fit(x_train, y_train)
+pred = clf.predict(x_test)
+print "Precision Score: %.3f" % precision_score(y_test, pred, average="binary")
+print "Recall Score: %.3f" % recall_score(y_test, pred, average="binary")
 
-for ii in range(len(init_array)):
-    clf = KMeans(n_clusters=2, n_init = init_array[ii])
+
+clf = ExtraTreesClassifier(criterion="gini", n_estimators=32, random_state=5)
+clf.fit(x_train, y_train)
+pred = clf.predict(x_test)
+print "Precision Score: %.3f" % precision_score(y_test, pred, average="binary")
+print "Recall Score: %.3f" % recall_score(y_test, pred, average="binary")
+
+
+feats = np.arange(1, len(features_list))
+prec = np.zeros(len(feats))
+rec = np.zeros(len(feats))
+
+for ii in range(len(feats)):
+    clf = ExtraTreesClassifier(n_estimators=32, max_features=feats[ii],
+                               random_state=5)
     clf.fit(x_train, y_train)
     pred = clf.predict(x_test)
-    prec[ii] = precision_score(y_test, pred)
-    rec[ii] = recall_score(y_test, pred)
+    prec[ii] = precision_score(y_test, pred, average="binary")
+    rec[ii] = recall_score(y_test, pred, average="binary")
 
-plot_precision_recall_param(prec, rec, init_array, "init")
+plot_precision_recall_param(prec, rec, feats, "max_features")
 
-
-tol_array = np.logspace(-8, -2, 100)
-prec = np.zeros(len(tol_array))
-rec = np.zeros(len(tol_array))
-
-for ii in range(len(tol_array)):
-    clf = KMeans(tol = tol_array[ii], n_clusters=2, n_init=3)
-    clf.fit(x_train, y_train)
-    pred = clf.predict(x_test)
-    prec[ii] = precision_score(y_test, pred)
-    rec[ii] = recall_score(y_test, pred)
-
-plot_precision_recall_param(prec, rec, tol_array, "tol")
-
-
-rand = np.arange(1, 100)
-prec = np.zeros(len(rand))
-rec = np.zeros(len(rand))
-
-for ii in range(len(rand)):
-    clf = KMeans(random_state=rand[ii], n_clusters=2, n_init=3, tol=1E-8)
-    clf.fit(x_train, y_train)
-    pred = clf.predict(x_test)
-    prec[ii] = precision_score(y_test, pred)
-    rec[ii] = recall_score(y_test, pred)
-
-plot_precision_recall_param(prec, rec, rand, "random_state")
 
 ## Tuning DecisionTreeClassifier
 clf = DecisionTreeClassifier(criterion="gini", random_state=5)
@@ -129,11 +117,21 @@ pred = clf.predict(x_test)
 print "Precision Score: %.3f" % precision_score(y_test, pred, average="binary")
 print "Recall Score: %.3f" % recall_score(y_test, pred, average="binary")
 
+
 clf = DecisionTreeClassifier(criterion="entropy", random_state=5)
 clf.fit(x_train, y_train)
 pred = clf.predict(x_test)
 print "Precision Score: %.3f" % precision_score(y_test, pred, average="binary")
 print "Recall Score: %.3f" % recall_score(y_test, pred, average="binary")
+
+
+clf = DecisionTreeClassifier(splitter="best", random_state=5, 
+                             criterion="entropy")
+clf.fit(x_train, y_train)
+pred = clf.predict(x_test)
+print "Precision Score: %.3f" % precision_score(y_test, pred, average="binary")
+print "Recall Score: %.3f" % recall_score(y_test, pred, average="binary")
+
 
 clf = DecisionTreeClassifier(splitter="random", random_state=5, 
                              criterion="entropy")
@@ -163,7 +161,7 @@ prec = np.zeros(len(depths))
 rec = np.zeros(len(depths))
 
 for ii in range(len(depths)):
-    clf = DecisionTreeClassifier(splitter="random", max_features=3, 
+    clf = DecisionTreeClassifier(splitter="random", max_features=4, 
                                  max_depth=depths[ii], random_state=5,
                                 criterion="entropy")
     clf.fit(x_train, y_train)
@@ -179,8 +177,8 @@ prec = np.zeros(len(min_samples))
 rec = np.zeros(len(min_samples))
 
 for ii in range(len(min_samples)):
-    clf = DecisionTreeClassifier(splitter="random", max_features=3, 
-                                 max_depth=10, random_state=5, 
+    clf = DecisionTreeClassifier(splitter="random", max_features=4, 
+                                 max_depth=20, random_state=5, 
                                  criterion="entropy",
                                  min_samples_split=min_samples[ii])
     clf.fit(x_train, y_train)
@@ -196,9 +194,9 @@ prec = np.zeros(len(min_samples))
 rec = np.zeros(len(min_samples))
 
 for ii in range(len(min_samples)):
-    clf = DecisionTreeClassifier(splitter="random", max_features=3, 
-                                 max_depth=10, random_state=5, 
-                                 criterion="entropy",
+    clf = DecisionTreeClassifier(splitter="random", max_features=4, 
+                                 max_depth=20, random_state=5, 
+                                 criterion="entropy", min_samples_split=5,
                                  min_samples_leaf=min_samples[ii])
     clf.fit(x_train, y_train)
     pred = clf.predict(x_test)
@@ -207,21 +205,6 @@ for ii in range(len(min_samples)):
  
 plot_precision_recall_param(prec, rec, min_samples, "min_samples_leaf")
 
-
-rand = np.arange(1, 100)
-prec = np.zeros(len(rand))
-rec = np.zeros(len(rand))
-
-for ii in range(len(rand)):
-    clf = DecisionTreeClassifier(splitter="random", max_features=3, 
-                                 max_depth=10, random_state=rand[ii], 
-                                 criterion="entropy")
-    clf.fit(x_train, y_train)
-    pred = clf.predict(x_test)
-    prec[ii] = precision_score(y_test, pred, average="binary")
-    rec[ii] = recall_score(y_test, pred, average="binary")
-
-plot_precision_recall_param(prec, rec, rand, "random_state")
 
 ## Tuning LinearSVC
 C_vals = np.logspace(-2, 2, 100)
@@ -244,11 +227,13 @@ pred = clf.predict(x_test)
 print "Precision Score: %.3f" % precision_score(y_test, pred, average="binary")
 print "Recall Score: %.3f" % recall_score(y_test, pred, average="binary")
 
+
 clf = LinearSVC(C=20, loss="squared_hinge", random_state=5)
 clf.fit(x_train, y_train)
 pred = clf.predict(x_test)
 print "Precision Score: %.3f" % precision_score(y_test, pred, average="binary")
 print "Recall Score: %.3f" % recall_score(y_test, pred, average="binary")
+
 
 clf = LinearSVC(C=20, random_state=5, dual=True)
 clf.fit(x_train, y_train)
@@ -256,17 +241,20 @@ pred = clf.predict(x_test)
 print "Precision Score: %.3f" % precision_score(y_test, pred, average="binary")
 print "Recall Score: %.3f" % recall_score(y_test, pred, average="binary")
 
+
 clf = LinearSVC(C=20, random_state=5, dual=False)
 clf.fit(x_train, y_train)
 pred = clf.predict(x_test)
 print "Precision Score: %.3f" % precision_score(y_test, pred, average="binary")
 print "Recall Score: %.3f" % recall_score(y_test, pred, average="binary")
 
+
 clf = LinearSVC(C=20, random_state=5, fit_intercept=False)
 clf.fit(x_train, y_train)
 pred = clf.predict(x_test)
 print "Precision Score: %.3f" % precision_score(y_test, pred, average="binary")
 print "Recall Score: %.3f" % recall_score(y_test, pred, average="binary")
+
 
 clf = LinearSVC(C=20, random_state=5, fit_intercept=True)
 clf.fit(x_train, y_train)
@@ -275,13 +263,13 @@ print "Precision Score: %.3f" % precision_score(y_test, pred, average="binary")
 print "Recall Score: %.3f" % recall_score(y_test, pred, average="binary")
 
 
-tol_array = np.logspace(-10, 0, 1000)
+tol_array = np.logspace(-6, 0, 1000)
 prec = np.zeros(len(tol_array))
 rec = np.zeros(len(tol_array))
 
 for ii in range(len(tol_array)):
-    clf = LinearSVC(C=20, tol= tol_array[ii], random_state=5,
-                   fit_intercept=False)
+    clf = LinearSVC(C=20, loss="squared_hinge", random_state=5, dual=True, 
+                    fit_intercept=True, tol=tol_array[ii])
     clf.fit(x_train, y_train)
     pred = clf.predict(x_test)
     prec[ii] = precision_score(y_test, pred, average="binary")
@@ -296,7 +284,7 @@ prec = np.zeros(len(n_estimators))
 rec = np.zeros(len(n_estimators))
 
 for ii in range(len(n_estimators)):
-    clf = AdaBoostClassifier(n_estimators=n_estimators[ii])
+    clf = AdaBoostClassifier(n_estimators=n_estimators[ii], learning_rate=2.2)
     clf.fit(x_train, y_train)
     pred = clf.predict(x_test)
     prec[ii] = precision_score(y_test, pred, average="binary")
@@ -311,7 +299,7 @@ rec = np.zeros(len(learning_rate))
 
 for ii in range(len(learning_rate)):
     clf = AdaBoostClassifier(learning_rate=learning_rate[ii], 
-                             n_estimators=50)
+                             n_estimators=7)
     clf.fit(x_train, y_train)
     pred = clf.predict(x_test)
     prec[ii] = precision_score(y_test, pred, average="binary")
@@ -320,35 +308,109 @@ for ii in range(len(learning_rate)):
 plot_precision_recall_param(prec, rec, learning_rate, "learning_rate")
 
 
-## Tuning BaggingClassifier
-n_estimators = np.arange(1, 100)
-prec = np.zeros(len(n_estimators))
-rec = np.zeros(len(n_estimators))
+## Tuning GradientBoostingClassifier
+clf = GradientBoostingClassifier(loss="deviance", warm_start=True)
+clf.fit(x_train, y_train)
+pred = clf.predict(x_test)
+print "Precision Score: %.3f" % precision_score(y_test, pred, average="binary")
+print "Recall Score: %.3f" % recall_score(y_test, pred, average="binary")
 
-for ii in range(len(n_estimators)):
-    clf = BaggingClassifier(n_estimators=n_estimators[ii], 
-                            warm_start=True)
+
+clf = GradientBoostingClassifier(loss="exponential", warm_start=True)
+clf.fit(x_train, y_train)
+pred = clf.predict(x_test)
+print "Precision Score: %.3f" % precision_score(y_test, pred, average="binary")
+print "Recall Score: %.3f" % recall_score(y_test, pred, average="binary")
+
+
+learn = np.linspace(1, 35, 500)
+prec = np.zeros(len(learn))
+rec = np.zeros(len(learn))
+
+for ii in range(len(learn)):
+    clf = GradientBoostingClassifier(learning_rate=learn[ii], warm_start=True)
     clf.fit(x_train, y_train)
     pred = clf.predict(x_test)
     prec[ii] = precision_score(y_test, pred, average="binary")
     rec[ii] = recall_score(y_test, pred, average="binary")
- 
-plot_precision_recall_param(prec, rec, n_estimators, "n_estimators")
+
+plot_precision_recall_param(prec, rec, learn, "learning_rate")
 
 
-samples = np.arange(1, 50)
+estimators = np.arange(1, 50)
+prec = np.zeros(len(estimators))
+rec = np.zeros(len(estimators))
+
+for ii in range(len(estimators)):
+    clf = GradientBoostingClassifier(learning_rate=8., n_estimators=estimators[ii], warm_start=True)
+    clf.fit(x_train, y_train)
+    pred = clf.predict(x_test)
+    prec[ii] = precision_score(y_test, pred, average="binary")
+    rec[ii] = recall_score(y_test, pred, average="binary")
+
+plot_precision_recall_param(prec, rec, estimators, "n_estimators")
+
+
+depths = np.arange(1, 50)
+prec = np.zeros(len(depths))
+rec = np.zeros(len(depths))
+
+for ii in range(len(depths)):
+    clf = GradientBoostingClassifier(learning_rate=8., n_estimators=5, 
+                                     max_depth=depths[ii], warm_start=True)
+    clf.fit(x_train, y_train)
+    pred = clf.predict(x_test)
+    prec[ii] = precision_score(y_test, pred, average="binary")
+    rec[ii] = recall_score(y_test, pred, average="binary")
+
+plot_precision_recall_param(prec, rec, depths, "max_depth")
+
+
+splits = np.arange(2, 50)
+prec = np.zeros(len(splits))
+rec = np.zeros(len(splits))
+
+for ii in range(len(splits)):
+    clf = GradientBoostingClassifier(learning_rate=8., n_estimators=5, max_depth=11,
+                                     min_samples_split=splits[ii], warm_start=True)
+    clf.fit(x_train, y_train)
+    pred = clf.predict(x_test)
+    prec[ii] = precision_score(y_test, pred, average="binary")
+    rec[ii] = recall_score(y_test, pred, average="binary")
+
+plot_precision_recall_param(prec, rec, splits, "min_samples_split")
+
+
+samples = np.arange(2, 50)
 prec = np.zeros(len(samples))
 rec = np.zeros(len(samples))
 
 for ii in range(len(samples)):
-    clf = BaggingClassifier(n_estimators=4, max_samples=samples[ii],
-                           warm_start=True)
+    clf = GradientBoostingClassifier(learning_rate=8., n_estimators=5, max_depth=11,
+                                     min_samples_split=14, warm_start=True, 
+                                     min_samples_leaf=samples[ii])
     clf.fit(x_train, y_train)
     pred = clf.predict(x_test)
     prec[ii] = precision_score(y_test, pred, average="binary")
     rec[ii] = recall_score(y_test, pred, average="binary")
 
-plot_precision_recall_param(prec, rec, samples, "max_samples")
+plot_precision_recall_param(prec, rec, samples, "min_samples_leaf")
+
+
+samples = np.linspace(0.7, 1.0, 50)
+prec = np.zeros(len(samples))
+rec = np.zeros(len(samples))
+
+for ii in range(len(samples)):
+    clf = GradientBoostingClassifier(learning_rate=8., n_estimators=5, max_depth=11,
+                                     min_samples_split=14, warm_start=True, 
+                                     min_samples_leaf=9, subsample=samples[ii])
+    clf.fit(x_train, y_train)
+    pred = clf.predict(x_test)
+    prec[ii] = precision_score(y_test, pred, average="binary")
+    rec[ii] = recall_score(y_test, pred, average="binary")
+
+plot_precision_recall_param(prec, rec, samples, "subsample")
 
 
 feats = np.arange(1, len(features_list))
@@ -356,59 +418,100 @@ prec = np.zeros(len(feats))
 rec = np.zeros(len(feats))
 
 for ii in range(len(feats)):
-    clf = BaggingClassifier(n_estimators=4, max_samples=35,
-                           max_features=feats[ii], warm_start=True)
+    clf = GradientBoostingClassifier(learning_rate=8., n_estimators=5, max_depth=11,
+                                     min_samples_split=14, warm_start=True, 
+                                     min_samples_leaf=9, max_features=feats[ii])
     clf.fit(x_train, y_train)
     pred = clf.predict(x_test)
     prec[ii] = precision_score(y_test, pred, average="binary")
     rec[ii] = recall_score(y_test, pred, average="binary")
- 
+
 plot_precision_recall_param(prec, rec, feats, "max_features")
 
-# Tuning GMM
-tol_array = np.logspace(-8, -2, 100)
-prec = np.zeros(len(tol_array))
-rec = np.zeros(len(tol_array))
 
-for ii in range(len(tol_array)):
-    clf = GMM(tol=tol_array[ii], n_components=2)
+## Tuning RandomForest Classifier
+clf = RandomForestClassifier(criterion="entropy", warm_start=True)
+clf.fit(x_train, y_train)
+pred = clf.predict(x_test)
+print "Precision Score: %.3f" % precision_score(y_test, pred, average="binary")
+print "Recall Score: %.3f" % recall_score(y_test, pred, average="binary")
+
+
+clf = RandomForestClassifier(criterion="gini", warm_start=True)
+clf.fit(x_train, y_train)
+pred = clf.predict(x_test)
+print "Precision Score: %.3f" % precision_score(y_test, pred, average="binary")
+print "Recall Score: %.3f" % recall_score(y_test, pred, average="binary")
+
+
+estimators = np.arange(1, 50)
+prec = np.zeros(len(estimators))
+rec = np.zeros(len(estimators))
+
+for ii in range(len(estimators)):
+    clf = RandomForestClassifier(n_estimators=estimators[ii], warm_start=True)
     clf.fit(x_train, y_train)
     pred = clf.predict(x_test)
     prec[ii] = precision_score(y_test, pred, average="binary")
     rec[ii] = recall_score(y_test, pred, average="binary")
 
-plot_precision_recall_param(prec, rec, tol_array, "tol")
+plot_precision_recall_param(prec, rec, estimators, "n_estimators")
 
 
-iters = np.arange(1, 50)
-prec = np.zeros(len(iters))
-rec = np.zeros(len(iters))
+feats = np.arange(1, len(features_list))
+prec = np.zeros(len(feats))
+rec = np.zeros(len(feats))
 
-for ii in range(len(iters)):
-    clf = GMM(tol=5E-3, n_components=2, n_iter=iters[ii])
+for ii in range(len(feats)):
+    clf = RandomForestClassifier(n_estimators=18, max_features=feats[ii], warm_start=True)
     clf.fit(x_train, y_train)
     pred = clf.predict(x_test)
     prec[ii] = precision_score(y_test, pred, average="binary")
     rec[ii] = recall_score(y_test, pred, average="binary")
 
-plot_precision_recall_param(prec, rec, iters, "n_iter")
+plot_precision_recall_param(prec, rec, feats, "max_features")
 
 
-inits = np.arange(1, 50)
-prec = np.zeros(len(inits))
-rec = np.zeros(len(inits))
+depths = np.arange(1, 50)
+prec = np.zeros(len(depths))
+rec = np.zeros(len(depths))
 
-for ii in range(len(inits)):
-    clf = GMM(tol=5E-3, n_components=2, n_init=inits[ii])
+for ii in range(len(depths)):
+    clf = RandomForestClassifier(n_estimators=18, max_features=2,
+                                 max_depth=depths[ii], warm_start=True)
     clf.fit(x_train, y_train)
     pred = clf.predict(x_test)
     prec[ii] = precision_score(y_test, pred, average="binary")
     rec[ii] = recall_score(y_test, pred, average="binary")
 
-plot_precision_recall_param(prec, rec, inits, "n_init")''
+plot_precision_recall_param(prec, rec, depths, "max_depth")
 
 
+splits = np.arange(2, 50)
+prec = np.zeros(len(splits))
+rec = np.zeros(len(splits))
+
+for ii in range(len(splits)):
+    clf = RandomForestClassifier(n_estimators=18, max_features=2,
+                                 max_depth=7, warm_start=True, min_samples_split=splits[ii])
+    clf.fit(x_train, y_train)
+    pred = clf.predict(x_test)
+    prec[ii] = precision_score(y_test, pred, average="binary")
+    rec[ii] = recall_score(y_test, pred, average="binary")
+
+plot_precision_recall_param(prec, rec, splits, "min_samples_split")
 
 
+samples = np.arange(1, 50)
+prec = np.zeros(len(samples))
+rec = np.zeros(len(samples))
 
+for ii in range(len(samples)):
+    clf = RandomForestClassifier(n_estimators=18, max_features=2,
+                                 max_depth=7, warm_start=True, min_samples_leaf=samples[ii])
+    clf.fit(x_train, y_train)
+    pred = clf.predict(x_test)
+    prec[ii] = precision_score(y_test, pred, average="binary")
+    rec[ii] = recall_score(y_test, pred, average="binary")
 
+plot_precision_recall_param(prec, rec, samples, "min_samples_leaf")

@@ -2,8 +2,8 @@
 
 import sys
 import pickle
-# sys.path.append("../../courses/machine-learning/ud120-projects/tools/")
-sys.path.append("../tools/")
+sys.path.append("../../courses/machine-learning/ud120-projects/tools/")
+# sys.path.append("../tools/")
 
 from feature_format import featureFormat, targetFeatureSplit
 from tester import dump_classifier_and_data
@@ -126,9 +126,8 @@ for key in my_data:
 # Rewriting this so that it works with my dataframe
 # data = featureFormat(my_dataset, features_list, sort_keys = True)
 # labels, features = targetFeatureSplit(data)
-features_list = ["poi", "log_other", "stocks_cash_ratio", "fractions_sent", 
-                 "log_expenses"]
-# features_list = ["poi", "log_other", "log_expenses"]
+features_list = ["poi", "exercised_stock_options", "log_other", "log_expenses", 
+                 "salary", "fractions_received"]
 data = featureFormat(my_data, features_list, sort_keys=True)
 labels, features = targetFeatureSplit(data)
 
@@ -240,27 +239,24 @@ from sklearn.cluster import KMeans
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier,\
     BaggingClassifier, ExtraTreesClassifier, GradientBoostingClassifier
 from sklearn.linear_model import RidgeClassifier
-from sklearn.mixture import GMM
 
 from sklearn.metrics import accuracy_score, precision_score, recall_score
 from sklearn.cross_validation import train_test_split
 
 classifiers = {"GaussianNB" : GaussianNB(), 
-               "DecisionTree" : DecisionTreeClassifier(random_state=5),
+               "Decision Tree" : DecisionTreeClassifier(random_state=5),
                "KNearest" : KNeighborsClassifier(),
                "SVC - rbf" : SVC(kernel="rbf"),
                "LinearSVC" : LinearSVC(),
                "KMeans" : KMeans(random_state=5, n_clusters=2),
                "RandomForestClassifier" : RandomForestClassifier(),
-               "RandomForestClassifier - entropy" : \
-                    RandomForestClassifier(criterion='entropy'),
                "AdaBoostClassifier" : AdaBoostClassifier(),
                "BaggingClassifier" : BaggingClassifier(),
                "ExtraTreesClassifier" : ExtraTreesClassifier(),
-               "GradientBoostingClassifier" : GradientBoostingClassifier(),
-               "RidgeClassifier" : RidgeClassifier()}
+               "GradientBoostingClassifier" : GradientBoostingClassifier()}
 
-# evaluate_classifiers(classifiers, features, labels)
+evaluate_classifiers(classifiers, features, labels)
+
 ### Task 5: Tune your classifier to achieve better than .3 precision and recall 
 ### using our testing script. Check the tester.py script in the final project
 ### folder for details on the evaluation method, especially the test_classifier
@@ -276,29 +272,157 @@ x_train, x_test, y_train, y_test = train_test_split(features, labels,
 data = {"x_train" : x_train, "y_train" : y_train, "x_test" : x_test, 
         "y_test" : y_test}
 
-with open('data.pickle', 'wb') as f:
-    pickle.dump(data, f)
+# Only showing the optimization path for RandomForestClassifier.
+# For all others tuned, please see Project 5 Worksheet.ipynb, Task 5
+# Max results for precision and recall scores are printed automatically.
+# Uncomment "plot_precision_recall_param" lines for figures showing 
+#    precision and recall score distributions that influenced final decisions.
 
-## export to check_classifiers.py to test different classifiers and optimize
+def plot_precision_recall_param(precision, recall, param, param_name):
+    """
+    This function takes arrays of precision and recall scores, as well as
+    the array of parameter choices, then simply plots score vs parameter value.
+    The max of each score will be pointed out by a downward-pointing triangle.
 
-classifiers = {"KMeans" : KMeans(n_clusters=2, n_init=50, tol=1E-8),
-               "LinearSVC" : LinearSVC(C=20.0, random_state=5, 
-                                    fit_intercept=False),
-               "GaussianNB" : GaussianNB(),
-               "GMM" : GMM(tol=5E-3, n_components=2),
-               "BaggingClassifier" : BaggingClassifier(max_samples=35, 
-                                                       max_features=3, 
-                                                       warm_start=True),
-               "AdaBoostClassifier" : AdaBoostClassifier(learning_rate=0.85,
-                                                         n_estimators=50),
-               "DecisionTreeClassifier" : \
-                DecisionTreeClassifier(splitter="random", 
-                                     max_features=3, 
-                                     max_depth=10, 
-                                     random_state=40, 
-                                     criterion="entropy")}
+    This is specifically for algorithm tuning, to visualize the landscape of
+    tuning results. It does NOT output the optimal parameter value. It just
+    shows what was obtained.
+    """
+    fig = plt.figure(figsize=(8, 3))
+    ax = plt.subplot(111)
+    ax.plot(param, precision, color="b", label="precision")
+    ax.scatter(param[precision.argmax()], precision[precision.argmax()] + 0.01, 
+               marker="v", c="r")
+    ax.text(0.02, 0.9, 
+            "Precision Max: %.3f at %s: %g" % (precision.max(), param_name, 
+                                               param[precision.argmax()]),
+            horizontalalignment="left", verticalalignment="top", 
+            transform=ax.transAxes)
+    
+    ax.plot(param, recall, color="g", label="recall")
+    ax.scatter(param[recall.argmax()], recall[recall.argmax()] + 0.01, 
+               marker="v", c="k")
+    ax.text(0.02, 0.8, 
+            "Recall Max: %.3f at %s: %g" % (recall.max(), param_name, 
+                                            param[recall.argmax()]),
+            horizontalalignment="left", verticalalignment="top", 
+            transform=ax.transAxes)
+    
+    ax.set_xlabel(param_name)
+    ax.set_ylim(0, 1.0)
+    ax.set_ylabel("Score")
+    ax.minorticks_on()
+    ax.legend()
+    plt.show()
 
-evaluate_classifiers(classifiers, features, labels, prec_avg="binary", iters=100)
+def print_max_scores(precision, recall, param, param_name):
+  prec_str = "Max Precision of %.3f at %s = %g" 
+  rec_str = "Max Recall of %.3f at %s = %g\n"
+  print prec_str % (precision.max(), param_name, param[precision.argmax()])
+  print rec_str % (recall.max(), param_name, param[recall.argmax()])
+
+
+clf = RandomForestClassifier(criterion="entropy", warm_start=True, random_state=5)
+clf.fit(x_train, y_train)
+pred = clf.predict(x_test)
+print "Entropy Precision Score: %.3f" % precision_score(y_test, pred, average="binary")
+print "Entropy Recall Score: %.3f" % recall_score(y_test, pred, average="binary")
+
+clf = RandomForestClassifier(criterion="gini", warm_start=True, random_state=5)
+clf.fit(x_train, y_train)
+pred = clf.predict(x_test)
+print "Gini - Precision Score: %.3f" % precision_score(y_test, pred, average="binary")
+print "Gini - Recall Score: %.3f" % recall_score(y_test, pred, average="binary")
+
+estimators = np.arange(1, 50)
+prec = np.zeros(len(estimators))
+rec = np.zeros(len(estimators))
+
+for ii in range(len(estimators)):
+    clf = RandomForestClassifier(n_estimators=estimators[ii], random_state=5, 
+                                 warm_start=True)
+    clf.fit(x_train, y_train)
+    pred = clf.predict(x_test)
+    prec[ii] = precision_score(y_test, pred, average="binary")
+    rec[ii] = recall_score(y_test, pred, average="binary")
+
+print_max_scores(prec, rec, estimators, "n_estimators")
+
+# plot_precision_recall_param(prec, rec, estimators, "n_estimators", 
+#   outfile="randforest1.png")
+
+feats = np.arange(1, len(features_list))
+prec = np.zeros(len(feats))
+rec = np.zeros(len(feats))
+
+for ii in range(len(feats)):
+    clf = RandomForestClassifier(n_estimators=15, random_state=5,
+                                 max_features=feats[ii], warm_start=True)
+    clf.fit(x_train, y_train)
+    pred = clf.predict(x_test)
+    prec[ii] = precision_score(y_test, pred, average="binary")
+    rec[ii] = recall_score(y_test, pred, average="binary")
+
+print_max_scores(prec, rec, feats, "max_features")
+
+# plot_precision_recall_param(prec, rec, feats, "max_features", 
+#   outfile="randforest2.png")
+
+depths = np.arange(1, 50)
+prec = np.zeros(len(depths))
+rec = np.zeros(len(depths))
+
+for ii in range(len(depths)):
+    clf = RandomForestClassifier(n_estimators=15, random_state=5,
+                                 max_features=5,
+                                 max_depth=depths[ii], warm_start=True)
+    clf.fit(x_train, y_train)
+    pred = clf.predict(x_test)
+    prec[ii] = precision_score(y_test, pred, average="binary")
+    rec[ii] = recall_score(y_test, pred, average="binary")
+
+print_max_scores(prec, rec, depths, "max_depth")
+
+# plot_precision_recall_param(prec, rec, depths, "max_depth", 
+#   outfile="randforest3.png")
+
+splits = np.arange(2, 50)
+prec = np.zeros(len(splits))
+rec = np.zeros(len(splits))
+
+for ii in range(len(splits)):
+    clf = RandomForestClassifier(n_estimators=15, random_state=5,
+                                 max_features=5,
+                                 max_depth=6, warm_start=True, 
+                                 min_samples_split=splits[ii])
+    clf.fit(x_train, y_train)
+    pred = clf.predict(x_test)
+    prec[ii] = precision_score(y_test, pred, average="binary")
+    rec[ii] = recall_score(y_test, pred, average="binary")
+
+print_max_scores(prec, rec, splits, "min_samples_split")
+
+# plot_precision_recall_param(prec, rec, splits, "min_samples_split", 
+#   outfile="randforest4.png")
+
+samples = np.arange(1, 50)
+prec = np.zeros(len(samples))
+rec = np.zeros(len(samples))
+
+for ii in range(len(samples)):
+    clf = RandomForestClassifier(n_estimators=15, random_state=5,
+                                 max_features=5,
+                                 max_depth=6, warm_start=True, min_samples_split=2, 
+                                 min_samples_leaf=samples[ii])
+    clf.fit(x_train, y_train)
+    pred = clf.predict(x_test)
+    prec[ii] = precision_score(y_test, pred, average="binary")
+    rec[ii] = recall_score(y_test, pred, average="binary")
+
+print_max_scores(prec, rec, samples, "min_samples_leaf")
+
+# plot_precision_recall_param(prec, rec, samples, "min_samples_leaf", 
+#   outfile="randforest5.png")
 
 ### Task 6: Dump your classifier, dataset, and features_list so anyone can
 ### check your results. You do not need to change anything below, but make sure
@@ -306,11 +430,9 @@ evaluate_classifiers(classifiers, features, labels, prec_avg="binary", iters=100
 ### generates the necessary .pkl files for validating your results.
 
 
-clf = GradientBoostingClassifier(learning_rate=8., n_estimators=5, max_depth=11, 
-                                 min_samples_split=14, warm_start=True, 
-                                 min_samples_leaf=9, max_features=4)
-# clf = RandomForestClassifier(n_estimators=18, max_features=4,
-#                                  max_depth=8, warm_start=True,
-#                                  random_state=5)
+clf = RandomForestClassifier(n_estimators=15, random_state=5,
+                                 max_features=5, max_depth=6, warm_start=True, 
+                                 min_samples_split=2, 
+                                 min_samples_leaf=2)
 
 dump_classifier_and_data(clf, my_data, features_list)

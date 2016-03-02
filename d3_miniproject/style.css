@@ -1,0 +1,31 @@
+.data-text {
+    fill: black;
+    font-family: Arial;
+}
+.data-bar, .sidebar {
+    fill: #EFEFEF;
+}
+svg {
+    background-color: darkcyan;
+    padding-bottom: 4px;
+}
+h2 {
+    text-align: center;
+    font-family: Helvetica;
+    background-color: brown;
+    color: white;
+    margin: 0;
+    border-top: 10px solid tan;
+    border-bottom: 10px solid tan;
+    padding: 5px 0;
+    width: 960px;
+}
+.tick text {
+    font-size: 13px;
+}
+#y-title {
+    font-family: Helvetica;
+}
+.sidebar {
+    opacity: 0.6;
+}

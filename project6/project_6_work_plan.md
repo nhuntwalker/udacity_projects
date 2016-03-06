@@ -5,15 +5,15 @@
 	- Show split by grade
 	- Show further split by gender
 	- Open up at the end to investigate individual countries/regions
-- Upload **all** data to MySQL database
-- Extract relevant columns:
+- ~~Upload **all** data to MySQL database~~
+- ~~Extract relevant columns:~~
 
 | Column Name | Full Name | Column Number |
 | ----------- | --------- | ------------- |
 | CNT | Country | 0 |
 |ST01Q01 | International Grade | 7 |
-|ST03Q02 | Birth - Month | 9 |
-|ST03Q03 | Birth -Year | 10 |
+|ST03Q01 | Birth - Month | 9 |
+|ST03Q02 | Birth -Year | 10 |
 |ST04Q01 | Gender | 11 |
 |ST06Q01 | Age at ISCED 1 | 13 |
 |WEALTH | Wealth | 487 |
@@ -33,10 +33,11 @@
 |PV4SCIE | ... | 548 |
 |PV5SCIE | ... | 549 |
 
-- Create new columns: PVMATHAVG, PVREADAVG, PVSCIEAVG, PVALL
-- Get latitudes and longitudes of each country
-- Add lat-lon data to data set
-- Add country regions to data set (e.g. North America, Central America, Caribbean, Oceania, etc.)
+- ~~Note: removing Birth month and birth year because somewhat redundant with age. Need economy of data.~~
+- ~~Create new columns: PVMATHAVG, PVREADAVG, PVSCIEAVG~~
+- ~~Get latitudes and longitudes of each country~~
+- ~~Create lat-lon JSON data set~~
+- ~~Add country regions to lat-lon data set (e.g. North America, Central America, Caribbean, Oceania, etc.; source: https://en.wikipedia.org/wiki/United_Nations_geoscheme)~~
 - Create world map, coloring countries that are present in data
 - Make country color dependent on overall plausible value quantile
 - Add secondary dashboard for seeing overall distributions w.r.t. grade, split by gender

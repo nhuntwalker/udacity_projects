@@ -1,0 +1,9 @@
+#figure-container {
+    border: thin solid red;
+}
+
+.map-country {
+    stroke: black;
+    stroke-width: 0.25px;
+    fill: white;
+}

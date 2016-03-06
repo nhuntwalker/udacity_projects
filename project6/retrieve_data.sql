@@ -1,0 +1,8 @@
+SELECT 
+    CNT AS country, ST01Q01 AS grade_level, ST04Q01 AS gender, ST06Q01 AS age,
+    WEALTH AS wealth,
+    (PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5 AS math_avg,
+    (PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5 AS read_avg,
+    (PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5 AS scie_avg
+FROM udacity.pisa2012
+WHERE (ST01Q01 != 96) AND (ST06Q01 != 0);

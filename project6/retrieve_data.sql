@@ -1,8 +1,134 @@
+-- -- For total aggregate data in US 
+-- SELECT 
+--     CNT as country, ST01Q01 AS grade_level,
+--     AVG((PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5) AS math_avg,
+--     AVG((PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5) AS read_avg,
+--     AVG((PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5) AS scie_avg,
+--     AVG(
+--         (PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5 +
+--         (PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5 +
+--         (PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5
+--         ) AS total_avg,
+--     MAX((PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5) AS math_max,
+--     MIN((PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5) AS math_min,
+--     MAX((PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5) AS read_max,
+--     MIN((PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5) AS read_min,
+--     MAX((PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5) AS scie_max,
+--     MIN((PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5) AS scie_min,
+--     MAX(
+--         (PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5 +
+--         (PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5 +
+--         (PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5
+--         ) AS total_max,
+--     MIN(
+--         (PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5 +
+--         (PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5 +
+--         (PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5
+--         ) AS total_min,
+--     STD((PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5) AS math_std,
+--     STD((PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5) AS read_std,
+--     STD((PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5) AS scie_std,
+--     STD(
+--         (PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5 +
+--         (PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5 +
+--         (PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5
+--         ) AS total_std
+-- FROM udacity.pisa2012
+-- WHERE (ST01Q01 != 96) AND (ST01Q01 != 13)
+--     AND (CNT IN ("United States of America", "Florida (USA)", "Massachusetts (USA)", "Connecticut (USA)"))
+-- GROUP BY 1, 2;
+
+-- -- For gender-split aggregate data in US
+-- SELECT 
+--     CNT as country, ST01Q01 AS grade_level, ST04Q01 AS gender,
+--     AVG((PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5) AS math_avg,
+--     AVG((PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5) AS read_avg,
+--     AVG((PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5) AS scie_avg,
+--     AVG(
+--         (PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5 +
+--         (PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5 +
+--         (PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5
+--         ) AS total_avg,
+--     MAX((PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5) AS math_max,
+--     MIN((PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5) AS math_min,
+--     MAX((PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5) AS read_max,
+--     MIN((PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5) AS read_min,
+--     MAX((PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5) AS scie_max,
+--     MIN((PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5) AS scie_min,
+--     MAX(
+--         (PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5 +
+--         (PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5 +
+--         (PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5
+--         ) AS total_max,
+--     MIN(
+--         (PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5 +
+--         (PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5 +
+--         (PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5
+--         ) AS total_min,
+--     STD((PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5) AS math_std,
+--     STD((PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5) AS read_std,
+--     STD((PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5) AS scie_std,
+--     STD(
+--         (PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5 +
+--         (PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5 +
+--         (PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5
+--         ) AS total_std
+-- FROM udacity.pisa2012
+-- WHERE (ST01Q01 != 96) AND (ST01Q01 != 13)
+--     AND (CNT IN ("United States of America", "Florida (USA)", "Massachusetts (USA)", "Connecticut (USA)"))
+-- GROUP BY 1, 2, 3;
+
+-- For total aggregate data everywhere else
 SELECT 
-    CNT AS country, ST01Q01 AS grade_level, ST04Q01 AS gender, ST06Q01 AS age,
-    WEALTH AS wealth,
-    (PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5 AS math_avg,
-    (PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5 AS read_avg,
-    (PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5 AS scie_avg
+    CNT as country, ST01Q01 AS grade_level,
+    AVG((PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5) AS math_avg,
+    AVG((PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5) AS read_avg,
+    AVG((PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5) AS scie_avg,
+    AVG(
+        (PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5 +
+        (PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5 +
+        (PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5
+        ) AS total_avg,
+    MAX((PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5) AS math_max,
+    MIN((PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5) AS math_min,
+    MAX((PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5) AS read_max,
+    MIN((PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5) AS read_min,
+    MAX((PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5) AS scie_max,
+    MIN((PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5) AS scie_min,
+    MAX(
+        (PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5 +
+        (PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5 +
+        (PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5
+        ) AS total_max,
+    MIN(
+        (PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5 +
+        (PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5 +
+        (PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5
+        ) AS total_min,
+    STD((PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5) AS math_std,
+    STD((PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5) AS read_std,
+    STD((PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5) AS scie_std,
+    STD(
+        (PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5 +
+        (PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5 +
+        (PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5
+        ) AS total_std
 FROM udacity.pisa2012
-WHERE (ST01Q01 != 96) AND (ST06Q01 != 0);
+WHERE (ST01Q01 != 96) AND (ST01Q01 != 13)
+    AND CNT != "Florida (USA)" AND CNT != "Massachusetts (USA)" AND CNT != "Connecticut (USA)"
+GROUP BY 1, 2;
+
+-- -- For gender-split aggregate data everywhere else
+-- SELECT 
+--     CNT as country, ST01Q01 AS grade_level, ST04Q01 AS gender,
+--     AVG((PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5) AS math_avg,
+--     AVG((PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5) AS read_avg,
+--     AVG((PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5) AS scie_avg,
+--     STD((PV1MATH + PV2MATH + PV3MATH + PV4MATH + PV5MATH)/5) AS math_std,
+--     STD((PV1READ + PV2READ + PV3READ + PV4READ + PV5READ)/5) AS read_std,
+--     STD((PV1SCIE + PV2SCIE + PV3SCIE + PV4SCIE + PV5SCIE)/5) AS scie_std
+-- FROM udacity.pisa2012
+-- WHERE (ST01Q01 != 96) AND (ST01Q01 != 13)
+--     AND CNT != "Florida (USA)" AND CNT != "Massachusetts (USA)" AND CNT != "Connecticut (USA)"
+-- GROUP BY 1, 2, 3;
+

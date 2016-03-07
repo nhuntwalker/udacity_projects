@@ -1,9 +1,105 @@
+* {
+    box-sizing: border-box;
+
+}
+
 #figure-container {
-    border: thin solid red;
+    border: thin solid gray;
 }
 
 .map-country {
     stroke: black;
     stroke-width: 0.25px;
     fill: white;
+}
+
+.location-points,
+.data-points {
+    fill: #FFD000;
+    stroke: black;
+    stroke-width: 0.5px;
+    opacity: 0.5;
+}
+
+#lightbox-parent {    
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background-color: rgba(0,0,0,0.2);
+}
+
+#intro-lightbox {
+    width: 480px;
+    position: relative;
+    top: 25%;
+    margin: auto;
+    background-color: white;
+    border: 3px solid black;
+    border-radius: 5px;
+    padding: 10px 20px;
+}
+
+#intro-lightbox h2 {
+    text-align: center;
+}
+
+.nav {
+    background-color: black;
+    color:white;
+    width: 100px;
+    padding: 20px 10px;
+    text-align: center;
+    position: fixed;
+    top: 45%;
+    right: 0;
+}
+.nav:hover {
+    cursor: pointer;
+    background-color: #FFD000;
+    border: 2px solid black;
+    border-right: none;
+    color: black;
+    padding: 18px 10px;
+}
+
+.axis {
+    stroke: black;
+    fill: none;
+}
+#full-chart {
+    font-size: 12px;
+}
+
+.plotted-box {
+    stroke: black;
+    stroke-width: 2px;
+}
+.female {
+    fill: rgba(255, 0, 0, 0.5);
+}
+.male {
+    fill: rgba(0, 0, 255, 0.5);
+}
+.neutral {
+    fill: rgba(255, 208, 0, 0.5)
+}
+
+
+#all-plotted-items path {
+    stroke: rgba(0,0,0,0.5);
+    stroke-width: 1.5;
+    fill: none;
+}
+#all-plotted-items path.usa {
+    stroke: blue;
+    stroke-width: 2.5;
+}
+/*
+For testing only!!!
+*/
+
+#lightbox-parent {
+    display: none;
 }

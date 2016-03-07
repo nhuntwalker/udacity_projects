@@ -7,7 +7,28 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.16/d3.min.js"></script>
 </head>
 <body>
-    <svg id="figure-container" width="960" height="600"></svg>
+    <h1 id="title-text">
+        PISA 2012 - U.S. Academic Performance vs. the World
+    </h1>
+    <svg id="figure-container" width="960" height="550"></svg>
+    <div id="lightbox-parent">
+        <div class="container" id="intro-lightbox">
+            <h2>
+                The PISA 2012 Survey
+            </h2>
+            <p>
+                <a href=""><em>PISA</em></a> is a survey of students' skills and knowledge as they approach the end of compulsory education. It is not a conventional school test. Rather than examining how well students have learned the school curriculum, it looks at how well prepared they are for life beyond school.
+            </p>
+            <p> 
+                The <em>PISA</em> survey spans 65 countries and provides something of a standard metric  against which countries can measure themselves for performance in mathematics, reading, and science across grade levels 7-12. What follows is a dive into the performance of the United States of America with respect to other countries in the world.
+            </p>
+        </div>
+    </div>
+    <div class="nav next" nugget=1>
+        Next
+    </div>
+    <button id="gender-total">Total</button>
+    <button id="gender-split">Female/Male Split</button>
     <script src="vis-code.js"></script>
 </body>
 </html>

@@ -64,12 +64,12 @@ function draw_map(geo_data){
 };
 
 function draw_box_plot(all_data){
-    var margin = {x: 50, top: 100, bottom: 50},
+    var margin = {x: 75, top: 100, bottom: 50},
         boxwidth = 40;
 
     var grade_scale = d3.scale.linear()
                         .range([margin.x, width - margin.x])
-                        .domain([6.5, 12.5]),
+                        .domain([7, 12]),
         score_scale = d3.scale.linear()
                         .range([height - margin.bottom, margin.top])
                         .domain([0, 3000]);
@@ -98,6 +98,21 @@ function draw_box_plot(all_data){
             .attr("class", "y axis")
             .attr("transform", "translate(" + margin.x + ", 0)")
             .call(score_axis);
+
+        chart_space.append("g")
+            .attr("class", "x-label axis-label")
+            .append("text")
+                .attr("x", (width - margin.x)/ 2)
+                .attr("y", height - margin.bottom/4)
+                .text("Grade Level");
+
+        chart_space.append("g")
+            .attr("class", "y-label axis-label")
+            .style("transform", "rotate(270deg)")
+            .append("text")
+                .attr("x", -(height + margin.top)/2)
+                .attr("y", margin.x / 3)
+                .text("PISA Score");
     }
 
     // add in the data
@@ -147,7 +162,7 @@ function draw_box_plot(all_data){
 };
 
 function draw_line_plot(all_data){
-    var margin = {x: 50, top: 100, bottom: 50},
+    var margin = {x: 75, top: 100, bottom: 50},
         linewidth = 2;
 
     var score_extent = d3.extent(all_data, function(d){
@@ -156,7 +171,7 @@ function draw_line_plot(all_data){
 
     var grade_scale = d3.scale.linear()
                         .range([margin.x, width - margin.x])
-                        .domain([6.5, 12.5]),
+                        .domain([7, 12]),
         score_scale = d3.scale.linear()
                         .range([height - margin.bottom, margin.top])
                         .domain(score_extent);
@@ -186,6 +201,21 @@ function draw_line_plot(all_data){
             .attr("class", "y axis")
             .attr("transform", "translate(" + margin.x + ", 0)")
             .call(score_axis);
+
+        chart_space.append("g")
+            .attr("class", "x-label axis-label")
+            .append("text")
+                .attr("x", (width - margin.x)/ 2)
+                .attr("y", height - margin.bottom/4)
+                .text("Grade Level");
+
+        chart_space.append("g")
+            .attr("class", "y-label axis-label")
+            .style("transform", "rotate(270deg)")
+            .append("text")
+                .attr("x", -(height + margin.top)/2)
+                .attr("y", margin.x / 3)
+                .text("PISA Score");
     }
 
     // add in the data
@@ -287,6 +317,5 @@ gender_btn.on("click", function(){
 NEXT STEPS:
     bar chart slide ranking countries
     add final map slide
-    add axis labels
     add descriptive boxes for each "slide"
 *************************/

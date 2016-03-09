@@ -68,6 +68,10 @@
     stroke: black;
     fill: none;
 }
+.axis-label {
+    font-size: 18px;
+    font-family: helvetica;
+}
 #full-chart {
     font-size: 12px;
 }
@@ -88,7 +92,7 @@
 
 
 #all-plotted-items path {
-    stroke: rgba(0,0,0,0.5);
+    stroke: rgba(0,0,0,0.25);
     stroke-width: 1.5;
     fill: none;
 }

@@ -22,5 +22,5 @@
 ## Resources
 https://github.com/mbostock/d3/wiki/Transitions
 http://code.tutsplus.com/tutorials/building-a-multi-line-chart-using-d3js-part-2--cms-22973
-
+http://ajaxian.com/archives/foreignobject-hey-youve-got-html-in-my-svg
 LOOK INTO CROSSFILTER

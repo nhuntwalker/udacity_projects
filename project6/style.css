@@ -131,7 +131,7 @@
     stroke-width: 1.5;
     fill: none;
 }
-#all-plotted-items path:hover {
+#all-plotted-items path.green {
     stroke-width: 5;
     opacity: 1.0;
     stroke: rgba(0, 200, 0, 1.0)!important;
@@ -149,6 +149,15 @@
 
 #plot-legend {
 
+}
+#plot-legend #flag-line {
+    width: 68px;
+    height: 40px;
+}
+#plot-legend #flag-border {
+    stroke: black;
+    stroke-width: 0.5px;
+    fill: none;
 }
 /*
 For testing only!!!

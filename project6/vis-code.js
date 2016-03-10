@@ -59,7 +59,7 @@ function draw_line_plot(all_data){
         if (dataset[0][0] == null){
             the_file = "pisa2012_usa_total_gender.dat"
         } else {
-            the_file = dataset.attr("file-target");
+            the_file = dataset.attr("file-target-1");
         }
         new_dataset(the_file, target.attr("d-target"));
     });
@@ -70,7 +70,7 @@ function draw_line_plot(all_data){
             target.classed("selected", true);
 
         var the_city = "United States of America";
-        new_dataset(target.attr("file-target"), the_city);
+        new_dataset(target.attr("file-target-1"), the_city);
 
     });
 
@@ -238,6 +238,20 @@ function draw_multiple_lines(all_data){
     var margin = {x: 75, top: 50, bottom: 50},
         linewidth = 2;
 
+    d3.selectAll(".opt-box-choice.subject").on("click", function(){
+        d3.selectAll(".opt-box-choice.subject").classed("selected", false);
+        var target = d3.select(this);
+            target.classed("selected", true);
+
+        new_dataset(target.attr("file-target-2"));
+
+    });
+    function new_dataset(the_file){
+        d3.tsv("data/" + the_file, function(d){ // slide 1
+                return make_numerical(d);
+        }, draw_multiple_lines);
+    };
+
     var popfrac_extent = d3.extent(all_data, function(d){
             var total_count = all_data.filter(function(c){
                 return c["country"] == d["country"];
@@ -324,6 +338,7 @@ function draw_multiple_lines(all_data){
         var plot_space = d3.select("#all-plotted-items")
     }
 
+
     var line = d3.svg.line()
                 .interpolate("basis")
                 .x(function(d) { 
@@ -357,12 +372,25 @@ function draw_multiple_lines(all_data){
 
     var legend = svg.append("g")
                     .attr("id", "plot-legend")
-                    .attr("transform", "translate(700, " + margin.top + ")")
-                        .append("text")
-                        .text("Some words");
+                    .attr("transform", "translate(700, " + margin.top + ")");
 
-    d3.select("#plot-legend").append("text")
+    if (d3.select("#legend-head")[0][0] === null) {
+        legend.append("text")
+            .attr("id", "legend-head")
+            .text("Selected Country");        
+    }
+
+    legend.append("text")
+            .attr("y", 15)
             .attr("id", "country-line-name");
+
+    legend.append("text")
+            .attr("id", "population-line")
+            .attr("y", 30)
+
+    legend.append("image")
+        .attr("id", "flag-line")
+        .attr("y", 45);
 
     if (d3.selectAll(".country-line")[0].length == 0){
         datagroup.forEach(function(d, i) {
@@ -379,15 +407,72 @@ function draw_multiple_lines(all_data){
                 }
             );
         });
-    }
-
+            // For filling the legend
     var lines = d3.selectAll(".country-line")
                 .on("mouseover", function(){
                     var the_line = d3.select(this);
+                    d3.selectAll(".country-line").classed("green", false);
+                    the_line.classed("green", true);
                     d3.select("#country-line-name")
-                        .text(the_line.attr("this_country"));
-                });
+                        .text("Country: " + the_line.attr("this_country"));
 
+                    d3.select("#population-line")
+                        .text("Number of students: " + the_line.attr("total_counts"));
+
+                    d3.select("image#flag-line")
+                        .attr('xlink:href', get_flag(the_line.attr("this_country")));
+
+                    if (d3.select("#flag-border")[0][0] === null){
+                        legend.append("rect")
+                            .attr("id", "flag-border")
+                            .attr("y", 45)
+                            .attr("width", 68)
+                            .attr("height", 40);
+                    }
+                });
+    } else {
+        clear_svg(d3.selectAll("path.country-line"));
+        setTimeout(function(){
+            datagroup.forEach(function(d, i) {
+                plot_space.append('svg:path')
+                    .attr('d', line(d.values))
+                    .attr("total_counts", total_counts(d.values))
+                    .attr("this_country", d.key)
+                    .attr("class", function(){
+                        if (d.key == "United States of America") {
+                            return "country-line usa";
+                        } else {
+                            return "country-line";
+                        }
+                    }
+                );
+            });
+
+                // For filling the legend
+    var lines = d3.selectAll(".country-line")
+                .on("mouseover", function(){
+                    var the_line = d3.select(this);
+                    d3.selectAll(".country-line").classed("green", false);
+                    the_line.classed("green", true);
+                    d3.select("#country-line-name")
+                        .text("Country: " + the_line.attr("this_country"));
+
+                    d3.select("#population-line")
+                        .text("Number of students: " + the_line.attr("total_counts"));
+
+                    d3.select("image#flag-line")
+                        .attr('xlink:href', get_flag(the_line.attr("this_country")));
+
+                    if (d3.select("#flag-border")[0][0] === null){
+                        legend.append("rect")
+                            .attr("id", "flag-border")
+                            .attr("y", 45)
+                            .attr("width", 68)
+                            .attr("height", 40);
+                    }
+                });
+        }, 750);
+    }
 }
 
 d3.json("world_countries.json", draw_map); // slide 0
@@ -432,22 +517,26 @@ var options_box = d3.select("#options-box"),
     subject_line.append("div")
         .attr("class", "opt-box-choice subject")
         .attr("id", "total")
-        .attr("file-target", "pisa2012_usa_total_gender.dat")
+        .attr("file-target-1", "pisa2012_usa_total_gender.dat")
+        .attr("file-target-2", "pisa2012_world_total.dat")
         .html("Cumulative Total");
     subject_line.append("div")
         .attr("class", "opt-box-choice subject")
         .attr("id", "total")
-        .attr("file-target", "pisa2012_usa_reading_gender.dat")
+        .attr("file-target-1", "pisa2012_usa_reading_gender.dat")
+        .attr("file-target-2", "pisa2012_world_reading.dat")
         .html("Reading");
     subject_line.append("div")
         .attr("class", "opt-box-choice subject")
         .attr("id", "total")
-        .attr("file-target", "pisa2012_usa_science_gender.dat")
+        .attr("file-target-1", "pisa2012_usa_science_gender.dat")
+        .attr("file-target-2", "pisa2012_world_science.dat")
         .html("Science");
     subject_line.append("div")
         .attr("class", "opt-box-choice subject")
         .attr("id", "total")
-        .attr("file-target", "pisa2012_usa_math_gender.dat")
+        .attr("file-target-1", "pisa2012_usa_science_gender.dat")
+        .attr("file-target-2", "pisa2012_world_science.dat")
         .html("Mathematics");
 
 // control
@@ -471,9 +560,9 @@ var navigation = d3.selectAll(".nav").on("click", function(){
 function nav_control(advance){
     // when one of the nav buttons is clicked, either advance
     // the vis forward, or go backward
-    // When moving through slides, call clear_svg()
+    // When moving through slides, call clear_svg_children()
     if (advance === 0) {
-        clear_svg(svg);
+        clear_svg_children(svg);
         clear_html(options_box);
         show_html(lightbox);
         d3.select("#nav-prev")
@@ -494,8 +583,9 @@ function nav_control(advance){
             .style("display", "none");
 
     } else {
-        clear_svg(svg);
+        clear_svg_children(svg);
         clear_html(lightbox);
+        reset_options();
         d3.selectAll(".nav")
             .style("display", "block")
             .transition()
@@ -503,6 +593,7 @@ function nav_control(advance){
 
         if (advance === 1) {
             show_html(options_box);
+            show_html(d3.select(".options-line"));
             setTimeout(function(){
                 d3.tsv("data/pisa2012_usa_total_gender.dat", function(d){ // slide 1
                     if (d["country"] == "United States of America") {
@@ -513,6 +604,7 @@ function nav_control(advance){
   
         }
         if (advance === 2) {
+            clear_html(d3.select(".options-line"));
             setTimeout(function(){
                 d3.tsv("data/pisa2012_world_total.dat", function(d){ // slide 2
                     return make_numerical(d);
@@ -522,7 +614,7 @@ function nav_control(advance){
     }
 }
 
-function clear_svg(parent){
+function clear_svg_children(parent){
     // when called, fades then removes all child elements 
     // from the input element
     parent.selectAll("*")
@@ -531,6 +623,11 @@ function clear_svg(parent){
         .style("opacity", 0)
         .remove();
 
+    return true;
+}
+
+function clear_svg(object){
+    object.transition().duration(500).style("opacity", 0).remove();
     return true;
 }
 
@@ -549,6 +646,15 @@ function show_html(object){
             .transition()
             .duration(1000)
             .style("opacity", 1.0);
+}
+
+function reset_options(){
+    d3.selectAll(".opt-box-choice").classed("selected", false);
+}
+
+function get_flag(country_name){
+    var mod_name = country_name.replace(/[\s\(]+/g, "-").replace(/[\)]+/g, "");
+    return "flags/flag-of-" + mod_name + ".png";
 }
 /*************************
 NEXT STEPS:

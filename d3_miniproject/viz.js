@@ -1,11 +1,12 @@
 // Setup the plot
 var width = 960,
-    height = 500,
+    height = 420,
     bar_width = 100,
     dx = 10,
     x_round = 10,
     y_round = 5,
-    ymax = 1550000;
+    ymax = 1550000,
+    repo_href = "https://raw.githubusercontent.com/nhuntwalker/udacity_projects/master/d3_miniproject/";
 
 // Add the plot
 var title = d3.select("body").append("h2").text("Top Brands by Social Media Presence"),
@@ -14,14 +15,14 @@ svg.attr("width", width).attr("height", height);
 
 var xscale = d3.scale.linear().range([0, width]).domain([0, 8]),
     yscale = d3.scale.linear().range([0, height]).domain([0, ymax]),
-    the_data = [{brand: "YouTube", count: 1452921, logo: "youtube-logo.png"},
-                {brand: "eBay", count: 1158424, logo: "ebay-logo.png"},
-                {brand: "Google", count: 780929, logo: "google-logo.png"},
-                {brand: "Apple", count: 517532, logo: "apple-logo.png"},
-                {brand: "Samsung", count: 374786, logo: "samsung-logo.png"},
-                {brand: "Skype", count: 374786, logo: "skype-logo.png"},
-                {brand: "Disney", count: 270867, logo: "disney-logo.png"},
-                {brand: "Nokia", count: 259728, logo: "nokia-logo.png"}],
+    the_data = [{brand: "YouTube", count: 1452921, logo: repo_href + "youtube-logo.png"},
+                {brand: "eBay", count: 1158424, logo: repo_href + "ebay-logo.png"},
+                {brand: "Google", count: 780929, logo: repo_href + "google-logo.png"},
+                {brand: "Apple", count: 517532, logo: repo_href + "apple-logo.png"},
+                {brand: "Samsung", count: 374786, logo: repo_href + "samsung-logo.png"},
+                {brand: "Skype", count: 374786, logo: repo_href + "skype-logo.png"},
+                {brand: "Disney", count: 270867, logo: repo_href + "disney-logo.png"},
+                {brand: "Nokia", count: 259728, logo: repo_href + "nokia-logo.png"}],
     bars = svg.selectAll("rect")
                 .data(the_data).enter()
                 .append("rect"),
@@ -35,7 +36,7 @@ var xscale = d3.scale.linear().range([0, width]).domain([0, 8]),
                     .attr("ry", y_round)
                     .text(function(d){return d.brand;});
 
-var logo_height = 50,
+var logo_height = 30,
     images = svg.selectAll("image")
                 .data(the_data).enter()
                 .append("image"),

@@ -2,8 +2,23 @@
 var svg = d3.select("#figure-container"),
     width = 960,
     height = 550,
-    slide_indx = -1
-    lightbox = d3.select("#lightbox-parent");
+    slide_indx = -1,
+    lightbox = d3.select("#lightbox-parent"),
+    tooltip = d3.select("body").append("div")
+                            .attr("id", "tooltip")
+                            .style("top", (height - 150) + "px")
+                            .style("left", 10 + "px");
+
+tooltip.append("div").attr("id", "tooltip-country");
+tooltip.append("div").attr("id", "tooltip-students")
+                        .append("div").html("Students: <span></span>");
+tooltip.append("div").attr("id", "tooltip-region")
+                        .append("div").html("<span id='region'></span> Rank: <span id='region-rank'></span>")
+tooltip.append("div").append("span").html("Worldwide Rank:");
+tooltip.append("div").attr("id", "tooltip-rankings-male").attr("class", "col-6")
+                    .html('<i class="fa fa-mars"></i>');
+tooltip.append("div").attr("id", "tooltip-rankings-female").attr("class", "col-6")
+                    .html('<i class="fa fa-venus"></i>');
 
 
 function draw_map(geo_data){
@@ -23,26 +38,95 @@ function draw_map(geo_data){
                 .attr("class", "map-country");
 
     function place_points(location_data){
-        
-        // drop points for selection onto map
-        var points = svg.append("g")
-                        .attr("class", "drop-points")
-                        .selectAll("circle")
-                        .data(location_data)
-                        .enter()
-                        .append("circle")
-                        .attr("cx", function(d){
-                            var coords = projection([+d.longitude, +d.latitude]);
-                            return coords[0];
-                        })
-                        .attr("cy", function(d){
-                            var coords = projection([+d.longitude, +d.latitude]);
-                            return coords[1];
-                        })
-                        .attr("r", 5)
-                        .attr("class", "location-points");
-    }
+        // actual academic information
+        function populate_tooltip(academic_data){
+            // drop points for selection onto map
 
+            function rank_these_on_this(input_data, column){
+                // take in some objects and sort them in order based on the
+                // input column
+                return input_data.sort(function(a,b){
+                    return a[column] - b[column];
+                }).map(function(d, ii){
+                    d["rank"] = ii + 1;
+                    return d;
+                });
+            }
+
+            var points = svg.append("g")
+                            .attr("class", "drop-points")
+                            .selectAll("circle")
+                            .data(location_data)
+                            .enter()
+                            .append("circle")
+                            .attr("cx", function(d){
+                                var coords = projection([+d.longitude, +d.latitude]);
+                                return coords[0];
+                            })
+                            .attr("cy", function(d){
+                                var coords = projection([+d.longitude, +d.latitude]);
+                                return coords[1];
+                            })
+                            .attr("r", 4)
+                            .attr("region-name", function(d){
+                                return d["region"];
+                            })
+                            .attr("class", "location-points")
+                            .on("mouseover", function(d){
+                                d3.selectAll(".location-points")
+                                    .classed("selected", false)
+                                    .classed("in-region", false);
+                               d3.selectAll(d3.selectAll(".location-points")[0]
+                                    .filter(function(loc){
+                                        return d3.select(loc).attr("region-name") == d["region"];
+                                    })).classed("in-region", true);
+
+                                d3.select(this).classed("selected", true);
+
+                                var country_data = academic_data.filter(function(scores){
+                                        return scores["country"] == d["country"];
+                                    }),
+                                    female = country_data[0],
+                                    male = country_data[1];
+
+                                    debugger;
+
+                                tooltip.style("display", "block")
+                                        .transition()
+                                        .duration(500)
+                                        .style("opacity", 0.9);
+
+                                d3.select("#tooltip-country").html(d["country"]);
+                                var places_in_region = location_data.filter(function(loc){
+                                        return loc["region"] === d["region"];
+                                    }).map(function(loc){
+                                        return loc["country"];
+                                    }),
+                                    male_data_in_region = academic_data.filter(function(scores){
+                                        return (places_in_region.indexOf(scores["country"]) > -1) && (scores["gender"] == "Male");
+                                    }),
+                                    female_data_in_region = academic_data.filter(function(scores){
+                                        return (places_in_region.indexOf(scores["country"]) > -1) && (scores["gender"] == "Female");
+                                    }),
+                                    male_ranking = rank_these_on_this(male_data_in_region, "overall_avg"),
+                                    female_ranking = rank_these_on_this(female_data_in_region, "overall_avg");
+
+                                d3.select("#tooltip-region #region").html(d["region"]);
+                                d3.select("#tooltip-region #region-rank").html(male_ranking.filter(function(loc){
+                                    return loc["country"] == d["country"];
+                                }).map(function(about_time){
+                                    return about_time["rank"];
+                                }) + " / " + male_ranking.length);
+                                d3.select("#tooltip-students span").html((female["the_count"] + male["the_count"]).toLocaleString());
+                            });
+            
+
+        }
+        d3.tsv("data/pisa2012_world_averages_gender.dat", function(d){
+            return make_numerical(d);
+        }, populate_tooltip);
+
+    }
     d3.json("locations.JSON", place_points);
 };
 
@@ -338,7 +422,6 @@ function draw_multiple_lines(all_data){
         var plot_space = d3.select("#all-plotted-items")
     }
 
-
     var line = d3.svg.line()
                 .interpolate("basis")
                 .x(function(d) { 
@@ -417,7 +500,7 @@ function draw_multiple_lines(all_data){
                         .text("Country: " + the_line.attr("this_country"));
 
                     d3.select("#population-line")
-                        .text("Number of students: " + the_line.attr("total_counts"));
+                        .text("Number of students: " + Number(the_line.attr("total_counts")).toLocaleString());
 
                     d3.select("image#flag-line")
                         .attr('xlink:href', get_flag(the_line.attr("this_country")));
@@ -458,7 +541,7 @@ function draw_multiple_lines(all_data){
                         .text("Country: " + the_line.attr("this_country"));
 
                     d3.select("#population-line")
-                        .text("Number of students: " + the_line.attr("total_counts"));
+                        .text("Number of students: " + Number(the_line.attr("total_counts")).toLocaleString());
 
                     d3.select("image#flag-line")
                         .attr('xlink:href', get_flag(the_line.attr("this_country")));
@@ -473,7 +556,163 @@ function draw_multiple_lines(all_data){
                 });
         }, 750);
     }
-}
+};
+
+function draw_scatter_plots(all_data){
+    var margin = {x: 75, top: 50, bottom: 50},
+        linewidth = 2;
+
+    d3.selectAll(".opt-box-choice.axis-data").on("click", function(){
+        var target = d3.select(this);
+        if (target.classed("xval")) {
+            d3.selectAll(".xval").classed("selected", false);
+        } else {
+            d3.selectAll(".yval").classed("selected", false);            
+        }
+        target.classed("selected", true);
+
+        new_dataset(target.attr("d-target"));
+
+    });
+    function new_dataset(){
+        d3.tsv("data/pisa2012_world_averages.dat", function(d){ // slide 1
+                return make_numerical(d);
+        }, draw_scatter_plots);
+    };
+
+    var score_extent = [350, 625];
+
+    var x_scale = d3.scale.linear()
+                        .range([margin.x, width - margin.x])
+                        .domain(score_extent),
+
+        y_scale = d3.scale.linear()
+                        .range([height - margin.bottom, margin.top])
+                        .domain(score_extent);
+                        
+    var x_axis = d3.svg.axis()
+                        .scale(x_scale),
+
+        y_axis = d3.svg.axis()
+                        .scale(y_scale)
+                        .orient("left");
+
+    if (d3.select("#full-chart")[0].length == 1){
+        var chart_space = svg.append("g")
+                            .attr("id", "full-chart");   
+    } else {
+        var chart_space = d3.select("#full-chart");
+    }
+
+    if (d3.selectAll(".axis")[0].length == 0) {
+        chart_space.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + (height - margin.bottom) + ")")
+            .call(x_axis);
+
+        chart_space.append("g")
+            .attr("class", "y axis")
+            .attr("transform", "translate(" + margin.x + ", 0)")
+            .call(y_axis);
+    } else {
+        d3.selectAll(".axis").remove();
+        chart_space.append("g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0," + (height - margin.bottom) + ")")
+            .call(x_axis);
+
+        chart_space.append("g")
+            .attr("class", "y axis")
+            .attr("transform", "translate(" + margin.x + ", 0)")
+            .call(y_axis);
+    }
+
+    if (d3.selectAll(".axis-label")[0].length == 0) {
+        console.log("fire");
+        chart_space.append("g")
+            .attr("class", "x-label axis-label")
+            .append("text")
+                .attr("x", (width - margin.x)/ 2)
+                .attr("y", height - margin.bottom/4)
+                .text("PISA Score - Reading");
+
+        chart_space.append("g")
+            .attr("class", "y-label axis-label")
+            .style("transform", "rotate(270deg)")
+            .append("text")
+                .attr("x", -(height + margin.top)/2)
+                .attr("y", margin.x / 3)
+                .text("PISA Score - Math");
+    } else {
+        var new_xlabel = d3.selectAll(".xval.selected").html(),
+            new_ylabel = d3.selectAll(".yval.selected").html();
+
+        d3.select(".x-label.axis-label text").text("PISA Score - " + new_xlabel);       
+        d3.select(".y-label.axis-label text").text("PISA Score - " + new_ylabel);      
+    }
+
+    // get the data
+    if (d3.select("#all-plotted-items")[0].length == 1){
+        var plot_space = chart_space.append("g")
+                                .attr("id", "all-plotted-items");
+    } else {
+        var plot_space = d3.select("#all-plotted-items")
+    }
+
+    if (d3.selectAll(".data-points")[0][0] == null) {
+        var points = plot_space.selectAll("circle")
+                .data(all_data)
+                .enter()
+                .append("circle")
+                .attr("class", function(d){
+                    if (d["country"] == "United States of America") {
+                        return "data-points usa";
+                    } else {
+                        return "data-points";
+                    }
+                })
+                .attr("cx", function(d){return x_scale(d[d3.select("#x-axis-choices .selected").attr("d-target")]);})
+                .attr("cy", function(d){return y_scale(d[d3.select("#y-axis-choices .selected").attr("d-target")]);})
+                .attr("r", 6);
+
+        // point functionality
+        points.on("mouseover", function(){
+            d3.selectAll(".data-points").classed("selected", false);
+            d3.select(this).classed("selected", true);
+        });
+    } else {
+        var points = d3.selectAll(".data-points")
+                .transition()
+                .delay(function(d,ii){
+                    return ii*10;
+                })
+                .attr("cx", function(d){return x_scale(d[d3.select("#x-axis-choices .selected").attr("d-target")]);})
+                .attr("cy", function(d){return y_scale(d[d3.select("#y-axis-choices .selected").attr("d-target")]);})
+                .attr("r", 6);
+    }
+
+    // add a one-to-one line
+    var line_data = [
+                    {xval: score_extent[0], yval: score_extent[0]}, 
+                    {xval: score_extent[1], yval: score_extent[1]}
+                    ];
+
+    var line = d3.svg.line()
+        .x(function(d) {
+            return x_scale(d.xval);
+        })
+        .y(function(d) {
+            return y_scale(d.yval);
+        })
+        .interpolate('basis');
+
+    plot_space.append('svg:path')
+            .attr("d", line(line_data))
+            .attr('stroke', "#CCC") // line color
+            .attr('stroke-width', 2) // line width
+            .attr('class','diag_line guide')
+            .attr('fill', 'none');  
+};
 
 d3.json("world_countries.json", draw_map); // slide 0
 
@@ -483,15 +722,31 @@ d3.json("world_countries.json", draw_map); // slide 0
 //     }
 // }, draw_line_plot);
 
+// d3.tsv("data/pisa2012_world_averages.dat", function(d){ // slide 3
+//     return make_numerical(d);
+// }, draw_scatter_plots);
+
 function make_numerical(d){
     d["allgrades_bucket"] = +d["allgrades_bucket"];
     d["the_count"] = +d["the_count"];
+    d["math_avg"] = +d["math_avg"];
+    d["scie_avg"] = +d["scie_avg"];
+    d["read_avg"] = +d["read_avg"];
+    d["math_std"] = +d["math_std"];
+    d["scie_std"] = +d["scie_std"];
+    d["read_std"] = +d["read_std"];
+
+    d["overall_avg"] = d["math_avg"] + d["scie_avg"] + d["read_avg"];
     return d;
 };
 
 var options_box = d3.select("#options-box"),
     cities_line = options_box.append("div").attr("class", "options-line"),
-    subject_line = options_box.append("div").attr("class", "options-line");
+    subject_line = options_box.append("div").attr("class", "options-line"),
+    x_axis_options = options_box.append("div").attr("class", "options-line")
+                                .attr("id", "x-axis-choices"),
+    y_axis_options = options_box.append("div").attr("class", "options-line")
+                                .attr("id", "y-axis-choices");
 
     cities_line.append("div")
         .attr("class", "opt-box-choice city")
@@ -539,7 +794,41 @@ var options_box = d3.select("#options-box"),
         .attr("file-target-2", "pisa2012_world_science.dat")
         .html("Mathematics");
 
-// control
+    x_axis_options.append("div")
+        .attr("id", "x-label-control")
+        .attr("class", "opt-box-label")
+        .html("X-axis Data");
+    x_axis_options.append("div")
+        .attr("class", "opt-box-choice axis-data xval")
+        .attr("d-target", "math_avg")
+        .html("Math");
+    x_axis_options.append("div")
+        .attr("class", "opt-box-choice axis-data xval")
+        .attr("d-target", "scie_avg")
+        .html("Science");
+    x_axis_options.append("div")
+        .attr("class", "opt-box-choice axis-data xval selected")
+        .attr("d-target", "read_avg")
+        .html("Reading");
+
+    y_axis_options.append("div")
+        .attr("id", "y-label-control")
+        .attr("class", "opt-box-label")
+        .html("Y-axis Data");
+    y_axis_options.append("div")
+        .attr("class", "opt-box-choice axis-data yval selected")
+        .attr("d-target", "math_avg")
+        .html("Math");
+    y_axis_options.append("div")
+        .attr("class", "opt-box-choice axis-data yval")
+        .attr("d-target", "scie_avg")
+        .html("Science");
+    y_axis_options.append("div")
+        .attr("class", "opt-box-choice axis-data yval")
+        .attr("d-target", "read_avg")
+        .html("Reading");
+
+// utility
 
 var navigation = d3.selectAll(".nav").on("click", function(){
     var btn = d3.select(this),
@@ -576,11 +865,15 @@ function nav_control(advance){
         }, 500);
 
     } else if (advance === 4){
+        clear_svg_children(svg);
+        clear_html(options_box);
         d3.select("#nav-next")
             .transition()
             .style("opacity", 0)
             .transition()
             .style("display", "none");
+
+        d3.json("world_countries.json", draw_map);      
 
     } else {
         clear_svg_children(svg);
@@ -592,6 +885,8 @@ function nav_control(advance){
             .style("opacity", .75)
 
         if (advance === 1) {
+            clear_html(x_axis_options);
+            clear_html(y_axis_options);
             show_html(options_box);
             show_html(d3.select(".options-line"));
             setTimeout(function(){
@@ -604,11 +899,40 @@ function nav_control(advance){
   
         }
         if (advance === 2) {
-            clear_html(d3.select(".options-line"));
+            clear_html(d3.selectAll(".options-line"));
             setTimeout(function(){
+                show_html(subject_line);
                 d3.tsv("data/pisa2012_world_total.dat", function(d){ // slide 2
                     return make_numerical(d);
                 }, draw_multiple_lines);
+            }, 500);
+        }
+        if (advance === 3) {
+            clear_html(d3.selectAll(".options-line"));
+            setTimeout(function(){
+                show_html(x_axis_options);
+                show_html(y_axis_options);
+
+                var x_set = d3.selectAll("#x-axis-choices .axis-data")
+                                .classed("selected", function(d, ii){
+                                    if (ii == 2) {
+                                        return true;
+                                    } else {
+                                        return false;
+                                    }
+                                }),
+                    y_set = d3.selectAll("#y-axis-choices .axis-data")
+                                .classed("selected", function(d, ii){
+                                    if (ii == 0) {
+                                        return true;
+                                    } else {
+                                        return false;
+                                    }
+                                });
+
+                d3.tsv("data/pisa2012_world_averages.dat", function(d){ // slide 3
+                    return make_numerical(d);
+                }, draw_scatter_plots);
             }, 500);
         }
     }
@@ -637,7 +961,7 @@ function clear_html(object){
             .style("opacity", 0);
     setTimeout(function(){
         object.style("display", "none");
-    }, 750);
+    }, 500);
     return true;
 }
 
@@ -656,8 +980,10 @@ function get_flag(country_name){
     var mod_name = country_name.replace(/[\s\(]+/g, "-").replace(/[\)]+/g, "");
     return "flags/flag-of-" + mod_name + ".png";
 }
+
 /*************************
 NEXT STEPS:
+    make classifier to show which countries are most-like 
     add vertical line cursor event for showing the results on the Y axis
     add final map slide
     add descriptive boxes for each "slide"

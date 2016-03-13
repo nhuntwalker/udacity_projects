@@ -3,7 +3,9 @@
 *.bz2
 *.zip
 *.csv
+*.tsv
 *.txt
 *.pkl
 *.pdf
 *.pyc
+webdev_portfolio

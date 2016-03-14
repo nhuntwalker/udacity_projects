@@ -73,13 +73,14 @@ function draw_map(geo_data){
                             })
                             .attr("class", "location-points")
                             .on("mouseover", function(d){
-                                d3.selectAll(".location-points")
+                                d3.selectAll(".location-points").attr("r", 4)
                                     .classed("selected", false)
                                     .classed("in-region", false);
+
                                d3.selectAll(d3.selectAll(".location-points")[0]
                                     .filter(function(loc){
                                         return d3.select(loc).attr("region-name") == d["region"];
-                                    })).classed("in-region", true);
+                                    })).attr("r", 6).classed("in-region", true);
 
                                 d3.select(this).classed("selected", true);
 
@@ -88,8 +89,6 @@ function draw_map(geo_data){
                                     }),
                                     female = country_data[0],
                                     male = country_data[1];
-
-                                    debugger;
 
                                 tooltip.style("display", "block")
                                         .transition()

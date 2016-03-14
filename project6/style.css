@@ -63,7 +63,7 @@
     z-index: 1;
 }
 .location-points.in-region {
-    fill: rgba(200, 0, 0, 1.0)!important;
+    fill: rgba(200, 0, 0, 0.5)!important;
     opacity: 1.0;
 }
 .location-points.selected,

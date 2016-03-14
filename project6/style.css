@@ -1,6 +1,5 @@
 * {
     box-sizing: border-box;
-
 }
 
 #tooltip {
@@ -14,8 +13,10 @@
     border: 2px solid black;
     border-radius: 5px;
 
-    height: 228px;
+    height: 232px;
     width: 210px;
+
+    font-size: 14px;
 }
 .gender-sep {
     margin: 0px 12px;
@@ -26,6 +27,32 @@
 }
 .rank-list {
     margin-top: 0px;
+}
+.tooltip-div {
+    margin-bottom: 8px;
+}
+#tooltip-country {
+    width: 90px;
+    height: 40px;
+    float: left;
+    margin: 4px 0px 0px;
+}
+#tooltip-flag {
+    width: 68px;
+    height: 40px;
+    float: right;
+}
+#tooltip-flag img {
+    width: 100%;
+    height: 100%;
+}
+#tooltip-worldwide {
+    margin-bottom: 0px;
+}
+#tooltip ul {
+    list-style-type: none;
+    margin: 0px;
+    padding: 0px;
 }
 
 #options-box {
@@ -55,7 +82,7 @@
 .map-country {
     stroke: black;
     stroke-width: 0.25px;
-    fill: white;
+    fill: beige;
 }
 
 .location-points,
@@ -187,10 +214,6 @@
 #all-plotted-items path.boys {
     stroke: rgba(0, 0, 255, 0.75);
 }
-
-
-
-
 
 #plot-legend {
 

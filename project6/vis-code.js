@@ -7,32 +7,53 @@ var svg = d3.select("#figure-container"),
     tooltip = d3.select("body")
                 .append("div")
                 .attr("id", "tooltip")
-                .style("top", (height - 150) + "px")
+                .style("top", (height - 154) + "px")
                 .style("left", 10 + "px");
 
-tooltip.append("div").attr("id", "tooltip-country");
+tooltip.append("div")
+        .attr("id", "tooltip-country")
+        .attr("class", "tooltip-div");
 
-tooltip.append("div").attr("id", "tooltip-students")
-                        .append("div")
-                        .html("Students: <span></span>");
+tooltip.append("div")
+        .attr("id", "tooltip-flag")
+        .attr("class", "tooltip-div")
+        .append("img");
 
-tooltip.append("div").attr("id", "tooltip-region")
-                        .append("div")
-                        .html("<span id='region'></span> Rank:<br/><i class='fa fa-mars'></i>: <span id='region-rank-male'></span> <span class='gender-sep'>|</span> <i class='fa fa-venus'></i>: <span id='region-rank-female'></span>");
+tooltip.append("div")
+        .attr("class", "clearfix");
 
-tooltip.append("div").append("span").html("Worldwide Rank:");
+tooltip.append("div")
+        .attr("id", "tooltip-students")
+        .attr("class", "tooltip-div")
+        .append("div")
+        .html("Students: <span></span>");
 
-tooltip.append("div").attr("id", "tooltip-rankings-male")
-                    .attr("class", "col-6")
-                    .html('<i class="fa fa-mars"></i><ul class="rank-list"><li id="male-math"></li> <li id="male-science"></li> <li id="male-reading"></li> <li id="male-overall"></li></ul>');
+tooltip.append("div")
+        .attr("id", "tooltip-region")
+        .attr("class", "tooltip-div")
+        .append("div")
+        .html("<span id='region'></span> Rank:<br/><i class='fa fa-mars'></i>: <span id='region-rank-male'></span> <span class='gender-sep'>|</span> <i class='fa fa-venus'></i>: <span id='region-rank-female'></span>");
 
-tooltip.append("div").attr("id", "tooltip-rankings-female")
-                    .attr("class", "col-6")
-                    .html('<i class="fa fa-venus"></i><ul class="rank-list"><li id="female-math"></li> <li id="female-science"></li> <li id="female-reading"></li> <li id="female-overall"></li></ul>');
+tooltip.append("div")
+        .attr("class", "tooltip-div")
+        .attr("id", "tooltip-worldwide")
+        .append("span")
+        .html("Worldwide Rank:");
+
+tooltip.append("div")
+        .attr("id", "tooltip-rankings-male")
+        .attr("class", "col-6")
+        .html('<i class="fa fa-mars"></i><ul class="rank-list"><li id="male-overall"></li> <li id="male-science"></li> <li id="male-reading"></li> <li id="male-math"></li></ul>');
+
+tooltip.append("div")
+        .attr("id", "tooltip-rankings-female")
+        .attr("class", "col-6")
+        .html('<i class="fa fa-venus"></i><ul class="rank-list"><li id="female-overall"></li> <li id="female-science"></li> <li id="female-reading"></li> <li id="female-math"></li></ul>');
 
 
 function draw_map(geo_data){
     "use strict";
+
     // setup the projection
     var projection = d3.geo.mercator()
                         .scale(150)
@@ -46,7 +67,7 @@ function draw_map(geo_data){
                 .append("path")
                 .attr("d", path)
                 .attr("class", "map-country");
-
+// debugger;
     function place_points(location_data){
         // actual academic information
 
@@ -57,7 +78,7 @@ function draw_map(geo_data){
                 // take in some objects and sort them in order based on the
                 // input column
                 return input_data.sort(function(a,b){
-                    return a[column] - b[column];
+                    return b[column] - a[column];
                 }).map(function(d, ii){
                     d["rank"] = ii + 1;
                     return d;
@@ -151,13 +172,61 @@ function draw_map(geo_data){
                                     return about_time["rank"];
                                 }) + " / " + female_ranking.length);
 
-                                function get_ranking_only(){
+                                function get_ranking_only(objects_to_rank, column, country){
                                     // do all the rank processing and return ONLY a string with the result
+                                    var ranked_objects = rank_these_on_this(objects_to_rank, column);
+                                    var the_rank = ranked_objects.filter(function(loc){
+                                                return loc["country"] == country;
+                                            }).map(function(cnt_data){
+                                                return cnt_data["rank"];
+                                            });
+                                    return the_rank + " / " + ranked_objects.length;
                                 }
 
+                                d3.select("#tooltip-flag img")
+                                    .attr('src', get_flag(d["country"]));
+
                                 d3.select("#male-math")
-                                    .html("Math: " + get_ranking_only());
+                                    .html("Math: " + get_ranking_only(academic_data.filter(function(item){
+                                        return item["gender"] == "Male";
+                                    }), "math_avg", d["country"]));
+
+                               d3.select("#male-science")
+                                    .html("Science: " + get_ranking_only(academic_data.filter(function(item){
+                                        return item["gender"] == "Male";
+                                    }), "scie_avg", d["country"]));
+
+                                d3.select("#male-reading")
+                                    .html("Reading: " + get_ranking_only(academic_data.filter(function(item){
+                                        return item["gender"] == "Male";
+                                    }), "read_avg", d["country"]));
+
+                                d3.select("#male-overall")
+                                    .html("Overall: " + get_ranking_only(academic_data.filter(function(item){
+                                        return item["gender"] == "Male";
+                                    }), "overall_avg", d["country"]));
+
+                                d3.select("#female-math")
+                                    .html("Math: " + get_ranking_only(academic_data.filter(function(item){
+                                        return item["gender"] == "Female";
+                                    }), "math_avg", d["country"]));
+
+                               d3.select("#female-science")
+                                    .html("Science: " + get_ranking_only(academic_data.filter(function(item){
+                                        return item["gender"] == "Female";
+                                    }), "scie_avg", d["country"]));
+
+                                d3.select("#female-reading")
+                                    .html("Reading: " + get_ranking_only(academic_data.filter(function(item){
+                                        return item["gender"] == "Female";
+                                    }), "read_avg", d["country"]));
+
+                                d3.select("#female-overall")
+                                    .html("Overall: " + get_ranking_only(academic_data.filter(function(item){
+                                        return item["gender"] == "Female";
+                                    }), "overall_avg", d["country"]));
                             });
+
         }
         d3.tsv("data/pisa2012_world_averages_gender.dat", function(d){
             return make_numerical(d);
@@ -751,7 +820,7 @@ function draw_scatter_plots(all_data){
             .attr('fill', 'none');  
 };
 
-d3.json("world_countries.json", draw_map); // slide 0
+d3.json("world_countries.json", draw_map); // slide 0/4
 
 // d3.tsv("data/pisa2012_usa_total_gender.dat", function(d){ // slide 1
 //     if (d["country"] == "United States of America") {
@@ -921,13 +990,16 @@ function nav_control(advance){
     } else if (advance === 4){
         clear_svg_children(svg);
         clear_html(options_box);
+        enable_html(tooltip);
         d3.select("#nav-next")
             .transition()
             .style("opacity", 0)
             .transition()
             .style("display", "none");
 
-        d3.json("world_countries.json", draw_map);      
+        setTimeout(function(){
+            d3.json("world_countries.json", draw_map);              
+        }, 600);
 
     } else {
         clear_svg_children(svg);
@@ -941,6 +1013,7 @@ function nav_control(advance){
         if (advance === 1) {
             clear_html(x_axis_options);
             clear_html(y_axis_options);
+            disable_html(tooltip);
             show_html(options_box);
             show_html(d3.select(".options-line"));
             setTimeout(function(){
@@ -962,6 +1035,7 @@ function nav_control(advance){
             }, 500);
         }
         if (advance === 3) {
+            disable_html(tooltip);
             clear_html(d3.selectAll(".options-line"));
             setTimeout(function(){
                 show_html(x_axis_options);
@@ -1005,7 +1079,7 @@ function clear_svg_children(parent){
 }
 
 function clear_svg(object){
-    object.transition().duration(500).style("opacity", 0).remove();
+    object.transition().duration(300).style("opacity", 0).remove();
     return true;
 }
 
@@ -1017,6 +1091,16 @@ function clear_html(object){
         object.style("display", "none");
     }, 500);
     return true;
+}
+
+function disable_html(object){
+    object.style("display", "none");
+    return true;
+}
+function enable_html(object){
+    setTimeout(function(){
+        object.style("display", "block");        
+    }, 500);
 }
 
 function show_html(object){
@@ -1034,11 +1118,3 @@ function get_flag(country_name){
     var mod_name = country_name.replace(/[\s\(]+/g, "-").replace(/[\)]+/g, "");
     return "flags/flag-of-" + mod_name + ".png";
 }
-
-/*************************
-NEXT STEPS:
-    make classifier to show which countries are most-like 
-    add vertical line cursor event for showing the results on the Y axis
-    add final map slide
-    add descriptive boxes for each "slide"
-*************************/

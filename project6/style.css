@@ -17,9 +17,15 @@
     height: 228px;
     width: 210px;
 }
+.gender-sep {
+    margin: 0px 12px;
+}
 .col-6 {
     width:50%;
     float: left;
+}
+.rank-list {
+    margin-top: 0px;
 }
 
 #options-box {

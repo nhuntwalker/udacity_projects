@@ -4,21 +4,31 @@ var svg = d3.select("#figure-container"),
     height = 550,
     slide_indx = -1,
     lightbox = d3.select("#lightbox-parent"),
-    tooltip = d3.select("body").append("div")
-                            .attr("id", "tooltip")
-                            .style("top", (height - 150) + "px")
-                            .style("left", 10 + "px");
+    tooltip = d3.select("body")
+                .append("div")
+                .attr("id", "tooltip")
+                .style("top", (height - 150) + "px")
+                .style("left", 10 + "px");
 
 tooltip.append("div").attr("id", "tooltip-country");
+
 tooltip.append("div").attr("id", "tooltip-students")
-                        .append("div").html("Students: <span></span>");
+                        .append("div")
+                        .html("Students: <span></span>");
+
 tooltip.append("div").attr("id", "tooltip-region")
-                        .append("div").html("<span id='region'></span> Rank: <span id='region-rank'></span>")
+                        .append("div")
+                        .html("<span id='region'></span> Rank:<br/><i class='fa fa-mars'></i>: <span id='region-rank-male'></span> <span class='gender-sep'>|</span> <i class='fa fa-venus'></i>: <span id='region-rank-female'></span>");
+
 tooltip.append("div").append("span").html("Worldwide Rank:");
-tooltip.append("div").attr("id", "tooltip-rankings-male").attr("class", "col-6")
-                    .html('<i class="fa fa-mars"></i>');
-tooltip.append("div").attr("id", "tooltip-rankings-female").attr("class", "col-6")
-                    .html('<i class="fa fa-venus"></i>');
+
+tooltip.append("div").attr("id", "tooltip-rankings-male")
+                    .attr("class", "col-6")
+                    .html('<i class="fa fa-mars"></i><ul class="rank-list"><li id="male-math"></li> <li id="male-science"></li> <li id="male-reading"></li> <li id="male-overall"></li></ul>');
+
+tooltip.append("div").attr("id", "tooltip-rankings-female")
+                    .attr("class", "col-6")
+                    .html('<i class="fa fa-venus"></i><ul class="rank-list"><li id="female-math"></li> <li id="female-science"></li> <li id="female-reading"></li> <li id="female-overall"></li></ul>');
 
 
 function draw_map(geo_data){
@@ -39,6 +49,7 @@ function draw_map(geo_data){
 
     function place_points(location_data){
         // actual academic information
+
         function populate_tooltip(academic_data){
             // drop points for selection onto map
 
@@ -73,16 +84,21 @@ function draw_map(geo_data){
                             })
                             .attr("class", "location-points")
                             .on("mouseover", function(d){
-                                d3.selectAll(".location-points").attr("r", 4)
+                                d3.selectAll(".location-points")
+                                    .attr("r", 4)
                                     .classed("selected", false)
                                     .classed("in-region", false);
 
                                d3.selectAll(d3.selectAll(".location-points")[0]
                                     .filter(function(loc){
-                                        return d3.select(loc).attr("region-name") == d["region"];
-                                    })).attr("r", 6).classed("in-region", true);
+                                        return d3.select(loc)
+                                                    .attr("region-name") == d["region"];
+                                    }))
+                                    .attr("r", 6)
+                                    .classed("in-region", true);
 
-                                d3.select(this).classed("selected", true);
+                                d3.select(this)
+                                    .classed("selected", true);
 
                                 var country_data = academic_data.filter(function(scores){
                                         return scores["country"] == d["country"];
@@ -95,7 +111,13 @@ function draw_map(geo_data){
                                         .duration(500)
                                         .style("opacity", 0.9);
 
-                                d3.select("#tooltip-country").html(d["country"]);
+                                d3.select("#tooltip-country")
+                                    .html(d["country"]);
+
+                                d3.select("#tooltip-students span")
+                                    .html((female["the_count"] + male["the_count"])
+                                    .toLocaleString());
+
                                 var places_in_region = location_data.filter(function(loc){
                                         return loc["region"] === d["region"];
                                     }).map(function(loc){
@@ -110,16 +132,32 @@ function draw_map(geo_data){
                                     male_ranking = rank_these_on_this(male_data_in_region, "overall_avg"),
                                     female_ranking = rank_these_on_this(female_data_in_region, "overall_avg");
 
-                                d3.select("#tooltip-region #region").html(d["region"]);
-                                d3.select("#tooltip-region #region-rank").html(male_ranking.filter(function(loc){
-                                    return loc["country"] == d["country"];
+                                d3.select("#tooltip-region #region")
+                                    .html(d["region"]);
+
+                                d3.select("#tooltip-region #region-rank-male")
+                                    .html(male_ranking
+                                    .filter(function(loc){
+                                        return loc["country"] == d["country"];
+                                    })
+                                    .map(function(about_time){
+                                        return about_time["rank"];
+                                    }) + " / " + male_ranking.length);
+
+                                d3.select("#tooltip-region #region-rank-female")
+                                    .html(female_ranking.filter(function(loc){
+                                        return loc["country"] == d["country"];
                                 }).map(function(about_time){
                                     return about_time["rank"];
-                                }) + " / " + male_ranking.length);
-                                d3.select("#tooltip-students span").html((female["the_count"] + male["the_count"]).toLocaleString());
-                            });
-            
+                                }) + " / " + female_ranking.length);
 
+                                function get_ranking_only(){
+                                    // do all the rank processing and return ONLY a string with the result
+                                }
+
+                                d3.select("#male-math")
+                                    .html("Math: " + get_ranking_only());
+                            });
         }
         d3.tsv("data/pisa2012_world_averages_gender.dat", function(d){
             return make_numerical(d);
@@ -739,12 +777,17 @@ function make_numerical(d){
     return d;
 };
 
+// setting up the options box
 var options_box = d3.select("#options-box"),
-    cities_line = options_box.append("div").attr("class", "options-line"),
-    subject_line = options_box.append("div").attr("class", "options-line"),
-    x_axis_options = options_box.append("div").attr("class", "options-line")
+    cities_line = options_box.append("div")
+                                .attr("class", "options-line"),
+    subject_line = options_box.append("div")
+                                .attr("class", "options-line"),
+    x_axis_options = options_box.append("div")
+                                .attr("class", "options-line")
                                 .attr("id", "x-axis-choices"),
-    y_axis_options = options_box.append("div").attr("class", "options-line")
+    y_axis_options = options_box.append("div")
+                                .attr("class", "options-line")
                                 .attr("id", "y-axis-choices");
 
     cities_line.append("div")
@@ -752,16 +795,19 @@ var options_box = d3.select("#options-box"),
         .attr("id", "usa-data")
         .attr("d-target", "United States of America")
         .html("USA total");
+
     cities_line.append("div")
         .attr("class", "opt-box-choice city")
         .attr("id", "florida-data")
         .attr("d-target", "Florida (USA)")
         .html("Florida");
+
     cities_line.append("div")
         .attr("class", "opt-box-choice city")
         .attr("id", "connecticut-data")
         .attr("d-target", "Connecticut (USA)")
         .html("Connecticut");
+
     cities_line.append("div")
         .attr("class", "opt-box-choice city")
         .attr("id", "massachusetts-data")
@@ -774,18 +820,21 @@ var options_box = d3.select("#options-box"),
         .attr("file-target-1", "pisa2012_usa_total_gender.dat")
         .attr("file-target-2", "pisa2012_world_total.dat")
         .html("Cumulative Total");
+
     subject_line.append("div")
         .attr("class", "opt-box-choice subject")
         .attr("id", "total")
         .attr("file-target-1", "pisa2012_usa_reading_gender.dat")
         .attr("file-target-2", "pisa2012_world_reading.dat")
         .html("Reading");
+
     subject_line.append("div")
         .attr("class", "opt-box-choice subject")
         .attr("id", "total")
         .attr("file-target-1", "pisa2012_usa_science_gender.dat")
         .attr("file-target-2", "pisa2012_world_science.dat")
         .html("Science");
+
     subject_line.append("div")
         .attr("class", "opt-box-choice subject")
         .attr("id", "total")
@@ -797,14 +846,17 @@ var options_box = d3.select("#options-box"),
         .attr("id", "x-label-control")
         .attr("class", "opt-box-label")
         .html("X-axis Data");
+
     x_axis_options.append("div")
         .attr("class", "opt-box-choice axis-data xval")
         .attr("d-target", "math_avg")
         .html("Math");
+
     x_axis_options.append("div")
         .attr("class", "opt-box-choice axis-data xval")
         .attr("d-target", "scie_avg")
         .html("Science");
+
     x_axis_options.append("div")
         .attr("class", "opt-box-choice axis-data xval selected")
         .attr("d-target", "read_avg")
@@ -814,14 +866,17 @@ var options_box = d3.select("#options-box"),
         .attr("id", "y-label-control")
         .attr("class", "opt-box-label")
         .html("Y-axis Data");
+
     y_axis_options.append("div")
         .attr("class", "opt-box-choice axis-data yval selected")
         .attr("d-target", "math_avg")
         .html("Math");
+
     y_axis_options.append("div")
         .attr("class", "opt-box-choice axis-data yval")
         .attr("d-target", "scie_avg")
         .html("Science");
+
     y_axis_options.append("div")
         .attr("class", "opt-box-choice axis-data yval")
         .attr("d-target", "read_avg")

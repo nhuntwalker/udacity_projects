@@ -38,7 +38,40 @@
 - ~~Get latitudes and longitudes of each country~~
 - ~~Create lat-lon JSON data set~~
 - ~~Add country regions to lat-lon data set (e.g. North America, Central America, Caribbean, Oceania, etc.; source: https://en.wikipedia.org/wiki/United_Nations_geoscheme)~~
-- Create world map, coloring countries that are present in data
-- Make country color dependent on overall plausible value quantile
-- Add secondary dashboard for seeing overall distributions w.r.t. grade, split by gender
-- Add tooltips for countries showing data
+- ~~Create world map, coloring countries that are present in data~~
+- ~~Add secondary dashboard for seeing overall distributions w.r.t. grade, split by gender~~
+- ~~Add tooltips for countries showing data~~
+
+### Project 6 Remaining Work
+
+#### Slide 2:
+
+- ~~Change x-axis label when changing axis data~~
+- ~~Change y-axis label to indicate that it's the percentage of the population~~
+- Put the label of the overall data set up in the top left of the graph
+- ~~Add an explanatory box in the top right of the chart epxlaining the lines and their colors, as well as how to work the graph using the controls at the bottom.~~
+- See about having the axis and data controls show up pre-selected
+- Consider adding a tool-tip that lets you see the actual population count for each line for a given PISA score.
+
+#### Slide 3: 
+
+- Add explanatory box in the top-left part of the graph.
+- Put a border on the top right box
+- ~~Add axis labels~~
+- ~~Make x-axis label change with changing data~~
+- Remove "Selected Country" line and change the next line down to "Selected Country"
+- Investigate "Science" and "Mathematics" data. They may be the same.
+
+#### Slide 4:
+
+- Add explanatory box in the top left
+- Add legend in the bottom right
+
+#### Slide 5:
+
+- Add explanatory box in the top left
+
+#### General:
+
+- Make all legend boxes and explanatory boxes black with white text.
+

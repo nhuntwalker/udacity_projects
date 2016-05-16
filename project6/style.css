@@ -4,20 +4,50 @@
 
 #tooltip {
     opacity: 0;
-    position: fixed;
+    position: absolute;
     display: none;
 
+    height: 232px;
+    width: 210px;
+}
+
+#tooltip, #plot-legend,
+#intro-lightbox, .wordbox {
     background-color: rgba(0, 0, 0, 0.5);
     color: white;
     padding: 10px;
     border: 2px solid black;
     border-radius: 5px;
 
-    height: 232px;
-    width: 210px;
-
     font-size: 14px;
 }
+
+.wordbox {
+    opacity: 0;
+    display: none;
+    position: absolute;
+    padding-top: 0px;
+    padding-left: 7.5px;
+    font-size: 0.85em;
+}
+
+#wordbox-1 {
+    top: 92px;
+    left: 580px;
+    width: 370px;
+    height: 220px;
+}
+
+.blue-text, .red-text {
+    font-weight: 600;
+}
+.blue-text {
+    color: blue;
+}
+.red-text {
+    color: red;
+}
+
 .gender-sep {
     margin: 0px 12px;
 }
@@ -123,14 +153,18 @@
     position: relative;
     top: 25%;
     margin: auto;
-    background-color: white;
-    border: 3px solid black;
-    border-radius: 5px;
     padding: 10px 20px;
 }
 
 #intro-lightbox h2 {
     text-align: center;
+}
+
+#intro-lightbox a {
+    color: green;
+}
+#intro-lightbox a:visited {
+    color: red;
 }
 
 .nav {
@@ -215,9 +249,6 @@
     stroke: rgba(0, 0, 255, 0.75);
 }
 
-#plot-legend {
-
-}
 #plot-legend #flag-line {
     width: 68px;
     height: 40px;
@@ -232,5 +263,5 @@ For testing only!!!
 */
 
 #lightbox-parent {
-    display: none;
+    /*display: none;*/
 }
